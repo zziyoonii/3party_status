@@ -336,7 +336,7 @@ header h1 {
 
 .provider-stats {
     display: flex;
-    gap: 20px;
+    gap: 8px;
 }
 
 .provider-stat-item {
@@ -660,6 +660,19 @@ header h1 {
 }
 
 #external-services-tab .chart-container {
+    height: 380px;
+}
+
+/* LLM 서비스 탭: 외부 서비스 탭과 동일한 레이아웃 */
+#llm-services-tab .main-content {
+    grid-template-columns: 1fr;
+}
+
+#llm-services-tab .provider-charts-grid {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+#llm-services-tab .chart-container {
     height: 380px;
 }
 
