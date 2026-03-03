@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>서비스 모니터링 대시보드</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚀 서비스 모니터링 대시보드</h1>
+            <div class="header-info">
+                <span id="lastUpdate" class="update-time">실시간 업데이트 중...</span>
+                <button id="refreshBtn" class="btn-refresh">🔄 즉시 새로고침</button>
+            </div>
+        </header>
+
+        <!-- 탭 네비게이션 -->
+        <div class="tabs-container">
+            <button class="tab-button active" data-tab="llm-services">
+                🤖 LLM 서비스
+            </button>
+            <button class="tab-button" data-tab="external-services">
+                🔗 외부 서비스
+            </button>
+        </div>
+
+        <!-- LLM 서비스 탭 -->
+        <div id="llm-services-tab" class="tab-content active">
+
+        <!-- Provider별 상태 카드 -->
+        <div class="provider-status-grid">
+            <div class="provider-status-card" id="openaiStatusCard">
+                <div class="provider-header">
+                    <h3>ChatGPT</h3>
+                    <span class="provider-status-badge" id="openaiStatusBadge">-</span>
+                </div>
+                <div class="provider-stats">
+                    <div class="provider-stat-item">
+                        <span class="stat-label-small">응답 시간</span>
+                        <span class="stat-value-small" id="openaiResponseTime">-</span>
+                    </div>
+                    <div class="provider-stat-item">
+                        <span class="stat-label-small">건강도</span>
+                        <span class="stat-value-small" id="openaiHealthRate">-</span>
+                    </div>
+                </div>
+            </div>
+            <div class="provider-status-card" id="claudeStatusCard">
+                <div class="provider-header">
+                    <h3>Claude</h3>
+                    <span class="provider-status-badge" id="claudeStatusBadge">-</span>
+                </div>
+                <div class="provider-stats">
+                    <div class="provider-stat-item">
+                        <span class="stat-label-small">응답 시간</span>
+                        <span class="stat-value-small" id="claudeResponseTime">-</span>
+                    </div>
+                    <div class="provider-stat-item">
+                        <span class="stat-label-small">건강도</span>
+                        <span class="stat-value-small" id="claudeHealthRate">-</span>
+                    </div>
+                </div>
+            </div>
+            <div class="provider-status-card" id="geminiStatusCard">
+                <div class="provider-header">
+                    <h3>Gemini</h3>
+                    <span class="provider-status-badge" id="geminiStatusBadge">-</span>
+                </div>
+                <div class="provider-stats">
+                    <div class="provider-stat-item">
+                        <span class="stat-label-small">응답 시간</span>
+                        <span class="stat-value-small" id="geminiResponseTime">-</span>
+                    </div>
+                    <div class="provider-stat-item">
+                        <span class="stat-label-small">건강도</span>
+                        <span class="stat-value-small" id="geminiHealthRate">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CRITICAL 이슈 배너 -->
+        <div id="criticalBanner" class="critical-banner" style="display: none;">
+            <div class="critical-banner-content">
+                <div class="critical-icon">🚨</div>
+                <div class="critical-message">
+                    <div class="critical-title">CRITICAL 이슈 감지</div>
+                    <div class="critical-details" id="criticalDetails"></div>
+                    <div class="critical-action" id="criticalAction"></div>
+                </div>
+                <button class="critical-close" onclick="document.getElementById('criticalBanner').style.display='none'">×</button>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card" data-tooltip="지난 24시간 동안 수집된 모든 모니터링 기록의 총 개수입니다.">
+                <div class="stat-icon">📊</div>
+                <div class="stat-content">
+                    <div class="stat-label">전체 기록 <span class="tooltip-icon">?</span></div>
+                    <div class="stat-value" id="totalRecords">-</div>
+                </div>
+            </div>
+            <div class="stat-card healthy" data-tooltip="서버가 정상적으로 응답한 모니터링 체크의 개수입니다.">
+                <div class="stat-icon">✅</div>
+                <div class="stat-content">
+                    <div class="stat-label">정상 상태 <span class="tooltip-icon">?</span></div>
+                    <div class="stat-value" id="healthyCount">-</div>
+                </div>
+            </div>
+            <div class="stat-card error" data-tooltip="서버 오류, 타임아웃, 연결 실패 등 문제가 발생한 모니터링 체크의 개수입니다.">
+                <div class="stat-icon">⚠️</div>
+                <div class="stat-content">
+                    <div class="stat-label">오류 발생 <span class="tooltip-icon">?</span></div>
+                    <div class="stat-value" id="errorCount">-</div>
+                </div>
+            </div>
+            <div class="stat-card" data-tooltip="지난 24시간 동안의 모든 모니터링 체크의 평균 응답 시간입니다. 밀리초(ms) 단위로 표시됩니다.">
+                <div class="stat-icon">📈</div>
+                <div class="stat-content">
+                    <div class="stat-label">평균 응답 시간 <span class="tooltip-icon">?</span></div>
+                    <div class="stat-value" id="avgResponseTime">-</div>
+                </div>
+            </div>
+            <div class="stat-card" data-tooltip="정상 상태인 모니터링 체크가 전체 체크 중 차지하는 비율입니다. 높을수록 서버 상태가 양호함을 의미합니다.">
+                <div class="stat-icon">🎯</div>
+                <div class="stat-content">
+                    <div class="stat-label">건강도 <span class="tooltip-icon">?</span></div>
+                    <div class="stat-value" id="healthRate">-</div>
+                </div>
+            </div>
+            <div class="stat-card alert" data-tooltip="현재 해결되지 않은 활성 알림의 개수입니다. WARNING, ERROR, CRITICAL 수준의 알림이 포함됩니다.">
+                <div class="stat-icon">🔔</div>
+                <div class="stat-content">
+                    <div class="stat-label">활성 알림 <span class="tooltip-icon">?</span></div>
+                    <div class="stat-value" id="activeAlerts">-</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="chart-section">
+                <div class="section-header">
+                    <h2>📈 상태 통계 (Provider별)</h2>
+                    <select id="statsTimeRange" class="filter-select" title="통계 시간 범위 선택">
+                        <option value="1" selected>최근 1시간</option>
+                        <option value="6">최근 6시간</option>
+                        <option value="12">최근 12시간</option>
+                        <option value="24">최근 24시간</option>
+                    </select>
+                </div>
+                <div class="provider-charts-grid">
+                    <div class="provider-chart-item">
+                        <div class="provider-chart-label">OpenAI</div>
+                        <div class="chart-container-small">
+                            <canvas id="openaiStatusChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="provider-chart-item">
+                        <div class="provider-chart-label">Claude</div>
+                        <div class="chart-container-small">
+                            <canvas id="claudeStatusChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="provider-chart-item">
+                        <div class="provider-chart-label">Gemini</div>
+                        <div class="chart-container-small">
+                            <canvas id="geminiStatusChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-section">
+                <div class="section-header">
+                    <h2>⏱️ 응답 시간 추이</h2>
+                    <select id="responseTimeRange" class="filter-select" title="응답 시간 추이 시간 범위 선택">
+                        <option value="1" selected>최근 1시간</option>
+                        <option value="6">최근 6시간</option>
+                        <option value="12">최근 12시간</option>
+                        <option value="24">최근 24시간</option>
+                    </select>
+                </div>
+                <div class="chart-container">
+                    <canvas id="responseTimeChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="tables-section">
+            <div class="table-card">
+                <div class="section-header">
+                    <h2>🔍 최근 모니터링 기록</h2>
+                    <div class="filter-controls">
+                        <select id="providerFilter" class="filter-select" title="Provider별 필터링">
+                            <option value="">전체 Provider</option>
+                            <option value="openai">ChatGPT</option>
+                            <option value="claude">Claude</option>
+                            <option value="gemini">Gemini</option>
+                        </select>
+                        <select id="statusFilter" class="filter-select">
+                            <option value="">전체 상태</option>
+                            <option value="HEALTHY">정상</option>
+                            <option value="DEGRADED">저하</option>
+                            <option value="DOWN">다운</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table id="recordsTable">
+                        <thead>
+                            <tr>
+                                <th>시간</th>
+                                <th>Provider</th>
+                                <th>상태</th>
+                                <th>응답 시간</th>
+                                <th>오류 수준</th>
+                                <th>메시지</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recordsBody">
+                            <tr>
+                                <td colspan="6" class="loading">데이터 로딩 중...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="table-card">
+                <div class="section-header">
+                    <h2>🔔 활성 알림</h2>
+                    <div class="alert-info">
+                        <small>서버가 정상으로 복구되면 알림이 자동으로 해결됩니다. 해결 처리 버튼은 알림을 수동으로 무시할 때 사용하세요.</small>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table id="alertsTable">
+                        <thead>
+                            <tr>
+                                <th>시간</th>
+                                <th>수준</th>
+                                <th>메시지</th>
+                                <th>작업</th>
+                            </tr>
+                        </thead>
+                        <tbody id="alertsBody">
+                            <tr>
+                                <td colspan="4" class="loading">데이터 로딩 중...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        </div>
+
+        <!-- 외부 서비스 탭 -->
+        <div id="external-services-tab" class="tab-content">
+            <!-- 외부 서비스 Provider별 상태 카드 -->
+            <div class="provider-status-grid">
+                <div class="provider-status-card" id="cloudflareStatusCard">
+                    <div class="provider-header">
+                        <h3>☁️ Cloudflare</h3>
+                        <span class="provider-status-badge" id="cloudflareStatusBadge">-</span>
+                    </div>
+                    <div class="provider-stats">
+                        <div class="provider-stat-item">
+                            <span class="stat-label-small">응답 시간</span>
+                            <span class="stat-value-small" id="cloudflareResponseTime">-</span>
+                        </div>
+                        <div class="provider-stat-item">
+                            <span class="stat-label-small">건강도</span>
+                            <span class="stat-value-small" id="cloudflareHealthRate">-</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="provider-status-card" id="twilioStatusCard">
+                    <div class="provider-header">
+                        <h3>📱 Twilio</h3>
+                        <span class="provider-status-badge" id="twilioStatusBadge">-</span>
+                    </div>
+                    <div class="provider-stats">
+                        <div class="provider-stat-item">
+                            <span class="stat-label-small">응답 시간</span>
+                            <span class="stat-value-small" id="twilioResponseTime">-</span>
+                        </div>
+                        <div class="provider-stat-item">
+                            <span class="stat-label-small">건강도</span>
+                            <span class="stat-value-small" id="twilioHealthRate">-</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="provider-status-card" id="channeltalkStatusCard">
+                    <div class="provider-header">
+                        <h3>💬 채널톡</h3>
+                        <span class="provider-status-badge" id="channeltalkStatusBadge">-</span>
+                    </div>
+                    <div class="provider-stats">
+                        <div class="provider-stat-item">
+                            <span class="stat-label-small">응답 시간</span>
+                            <span class="stat-value-small" id="channeltalkResponseTime">-</span>
+                        </div>
+                        <div class="provider-stat-item">
+                            <span class="stat-label-small">건강도</span>
+                            <span class="stat-value-small" id="channeltalkHealthRate">-</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="provider-status-card" id="awsStatusCard">
+                    <div class="provider-header">
+                        <h3>☁️ AWS</h3>
+                        <span class="provider-status-badge" id="awsStatusBadge">-</span>
+                    </div>
+                    <div class="provider-stats">
+                        <div class="provider-stat-item">
+                            <span class="stat-label-small">응답 시간</span>
+                            <span class="stat-value-small" id="awsResponseTime">-</span>
+                        </div>
+                        <div class="provider-stat-item">
+                            <span class="stat-label-small">건강도</span>
+                            <span class="stat-value-small" id="awsHealthRate">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CRITICAL 이슈 배너 (외부 서비스용) -->
+            <div id="externalCriticalBanner" class="critical-banner" style="display: none;">
+                <div class="critical-banner-content">
+                    <div class="critical-icon">🚨</div>
+                    <div class="critical-message">
+                        <div class="critical-title">CRITICAL 이슈 감지</div>
+                        <div class="critical-details" id="externalCriticalDetails"></div>
+                        <div class="critical-action" id="externalCriticalAction"></div>
+                    </div>
+                    <button class="critical-close" onclick="document.getElementById('externalCriticalBanner').style.display='none'">×</button>
+                </div>
+            </div>
+
+            <div class="main-content">
+                <div class="chart-section">
+                    <div class="section-header">
+                        <h2>📈 상태 통계 (Provider별)</h2>
+                        <select id="externalStatsTimeRange" class="filter-select" title="통계 시간 범위 선택">
+                            <option value="1" selected>최근 1시간</option>
+                            <option value="6">최근 6시간</option>
+                            <option value="12">최근 12시간</option>
+                            <option value="24">최근 24시간</option>
+                        </select>
+                    </div>
+                    <div class="provider-charts-grid">
+                        <div class="provider-chart-item">
+                            <div class="provider-chart-label">Cloudflare</div>
+                            <div class="chart-container-small">
+                                <canvas id="cloudflareStatusChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="provider-chart-item">
+                            <div class="provider-chart-label">Twilio</div>
+                            <div class="chart-container-small">
+                                <canvas id="twilioStatusChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="provider-chart-item">
+                            <div class="provider-chart-label">채널톡</div>
+                            <div class="chart-container-small">
+                                <canvas id="channeltalkStatusChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="provider-chart-item">
+                            <div class="provider-chart-label">AWS</div>
+                            <div class="chart-container-small">
+                                <canvas id="awsStatusChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-section">
+                    <div class="section-header">
+                        <h2>⏱️ 응답 시간 추이</h2>
+                        <select id="externalResponseTimeRange" class="filter-select" title="응답 시간 추이 시간 범위 선택">
+                            <option value="1" selected>최근 1시간</option>
+                            <option value="6">최근 6시간</option>
+                            <option value="12">최근 12시간</option>
+                            <option value="24">최근 24시간</option>
+                        </select>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="externalResponseTimeChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tables-section">
+                <div class="table-card">
+                    <div class="section-header">
+                        <h2>🔍 최근 모니터링 기록</h2>
+                        <div class="filter-controls">
+                            <select id="externalProviderFilter" class="filter-select" title="Provider별 필터링">
+                                <option value="">전체 Provider</option>
+                                <option value="cloudflare">Cloudflare</option>
+                                <option value="twilio">Twilio</option>
+                                <option value="channeltalk">채널톡</option>
+                                <option value="aws">AWS</option>
+                            </select>
+                            <select id="externalStatusFilter" class="filter-select">
+                                <option value="">전체 상태</option>
+                                <option value="HEALTHY">정상</option>
+                                <option value="DEGRADED">저하</option>
+                                <option value="DOWN">다운</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table id="externalRecordsTable">
+                            <thead>
+                                <tr>
+                                    <th>시간</th>
+                                    <th>서비스</th>
+                                    <th>상태</th>
+                                    <th>응답 시간</th>
+                                    <th>오류 메시지</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="5" class="loading">데이터 로딩 중...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="table-card">
+                    <div class="section-header">
+                        <h2>🔔 활성 알림</h2>
+                        <div class="alert-info">
+                            <small>서버가 정상으로 복구되면 알림이 자동으로 해결됩니다. 해결 처리 버튼은 알림을 수동으로 무시할 때 사용하세요.</small>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table id="externalAlertsTable">
+                            <thead>
+                                <tr>
+                                    <th>시간</th>
+                                    <th>수준</th>
+                                    <th>메시지</th>
+                                    <th>상태</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="4" class="empty-state">활성 알림이 없습니다.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="/js/dashboard.js"></script>
+</body>
+</html>
