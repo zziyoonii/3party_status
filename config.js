@@ -72,8 +72,8 @@ export const settings = {
   ERROR_WINDOW_MINUTES: parseInt(process.env.ERROR_WINDOW_MINUTES || '5', 10),
   
   // API 서버 설정
-  API_HOST: process.env.API_HOST || '127.0.0.1',
-  API_PORT: parseInt(process.env.API_PORT || '8080', 10),
+  API_HOST: process.env.API_HOST || '0.0.0.0',
+  API_PORT: parseInt(process.env.PORT || process.env.API_PORT || '8080', 10),
   
   // Slack 알림 설정
   SLACK_ENABLED: process.env.SLACK_ENABLED === 'true',
