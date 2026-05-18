@@ -845,7 +845,7 @@ tbody tr:hover {
     border-radius: 12px;
     font-size: 12px;
     font-weight: 600;
-    text-transform: uppercase;
+    white-space: nowrap;
 }
 
 .status-healthy {

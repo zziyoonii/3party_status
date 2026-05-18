@@ -1,7 +1,10 @@
 /**
  * Gemini Status 모니터링 모듈
- * Google Cloud Status API (status.cloud.google.com/api/v2) 사용
- * API 키가 있으면 Gemini API 직접 호출로 더 정확하게 모니터링
+ * API 키 없이도 Gemini API 엔드포인트에 직접 요청해 인프라 상태 확인
+ * - 400/401/403 응답 → 서버 정상 (인증 필요하지만 서비스는 살아있음)
+ * - 5xx 응답 → 서버 이상 (DEGRADED/DOWN)
+ * - 연결 실패/타임아웃 → DOWN
+ * API 키가 있으면 실제 models API 호출로 더 정확하게 확인
  */
 import axios from 'axios';
 import { MonitoringRecord, ServerStatus, ErrorLevel, Alert } from './models/index.js';
@@ -9,9 +12,6 @@ import { settings } from './config.js';
 import { Op } from 'sequelize';
 import { SlackNotifier } from './slack_notifier.js';
 import { AlertManager } from './alert_manager.js';
-
-// Google Cloud 공식 Status API (Statuspage.io 형식)
-const GOOGLE_CLOUD_STATUS_API = 'https://status.cloud.google.com/api/v2';
 
 export class GeminiStatusMonitor {
   constructor(sequelize) {
@@ -79,83 +79,56 @@ export class GeminiStatusMonitor {
         additional_data = JSON.stringify({ method: 'api_direct', error: error.message });
       }
     } else {
-      // API 키 없으면 Google Cloud 공식 Status API 사용
+      // API 키 없으면 Gemini API 엔드포인트에 인증 없이 요청
+      // 400/401/403 = 서버 정상 (인증 필요), 5xx = 서버 이상, 연결 실패 = 다운
+      const probeUrl = `${this.api_url}/models`;
       try {
-        const statusUrl = `${GOOGLE_CLOUD_STATUS_API}/status.json`;
-        const statusResponse = await axios.get(statusUrl, { timeout: this.timeout });
+        const response = await axios.get(probeUrl, { timeout: this.timeout });
 
         response_time_ms = Date.now() - startTime;
-        http_status_code = statusResponse.status;
-
-        if (statusResponse.status === 200) {
-          const statusData = statusResponse.data;
-          // Statuspage.io 형식: status.indicator = "none" | "minor" | "major" | "critical"
-          const indicator = statusData?.status?.indicator || 'unknown';
-
-          if (indicator === 'none') {
-            status = ServerStatus.HEALTHY;
-          } else if (indicator === 'minor' || indicator === 'maintenance') {
-            status = ServerStatus.DEGRADED;
-            error_message = `Google Cloud Status: ${indicator}`;
-          } else if (indicator === 'major' || indicator === 'critical') {
-            status = ServerStatus.DOWN;
-            error_message = `Google Cloud Status: ${indicator}`;
-          } else {
-            status = ServerStatus.DEGRADED;
-            error_message = `Google Cloud Status: unknown indicator (${indicator})`;
-          }
-
-          // 컴포넌트 중 AI Platform / Vertex AI 관련 문제 확인
-          try {
-            const componentsResponse = await axios.get(`${GOOGLE_CLOUD_STATUS_API}/components.json`, { timeout: this.timeout });
-            if (componentsResponse.status === 200) {
-              const components = componentsResponse.data?.components || [];
-              const aiComponents = components.filter(c =>
-                c?.name && (
-                  c.name.includes('Vertex AI') ||
-                  c.name.includes('AI Platform') ||
-                  c.name.includes('Generative')
-                )
-              );
-              const problematic = aiComponents.filter(c => c.status && c.status !== 'operational');
-
-              if (problematic.length > 0 && status === ServerStatus.HEALTHY) {
-                status = ServerStatus.DEGRADED;
-                error_message = `Gemini/AI 관련 컴포넌트 이상: ${problematic.map(c => c.name).join(', ')}`;
-              }
-
-              additional_data = JSON.stringify({
-                method: 'google_cloud_status_api',
-                indicator,
-                ai_components: aiComponents.map(c => ({ name: c.name, status: c.status })),
-              });
-            }
-          } catch {
-            additional_data = JSON.stringify({ method: 'google_cloud_status_api', indicator });
-          }
-        } else {
-          status = ServerStatus.DOWN;
-          error_message = `Google Cloud Status API error: ${statusResponse.status}`;
-        }
+        http_status_code = response.status;
+        // 인증 없이 200이 오면 정상
+        status = ServerStatus.HEALTHY;
+        additional_data = JSON.stringify({ method: 'api_probe', note: 'Unauthenticated probe succeeded' });
       } catch (error) {
         response_time_ms = Date.now() - startTime;
 
-        if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+        if (error.response) {
+          http_status_code = error.response.status;
+
+          if (error.response.status === 400 || error.response.status === 401 || error.response.status === 403) {
+            // 인증 오류 = 서버는 살아있음
+            status = ServerStatus.HEALTHY;
+            additional_data = JSON.stringify({
+              method: 'api_probe',
+              note: `API reachable (HTTP ${error.response.status} = auth required, server is up)`,
+            });
+          } else if (error.response.status >= 500) {
+            status = ServerStatus.DOWN;
+            error_message = `Gemini API: Server error ${error.response.status}`;
+            additional_data = JSON.stringify({ method: 'api_probe', error: error.message });
+          } else {
+            status = ServerStatus.DEGRADED;
+            error_message = `Gemini API: HTTP ${error.response.status}`;
+            additional_data = JSON.stringify({ method: 'api_probe', error: error.message });
+          }
+        } else if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
           status = ServerStatus.DOWN;
-          error_message = 'Google Cloud Status API: Request timeout';
+          error_message = 'Gemini API: Request timeout';
+          additional_data = JSON.stringify({ method: 'api_probe', error: error.message });
         } else if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
           status = ServerStatus.DOWN;
-          error_message = 'Google Cloud Status API: Connection error';
+          error_message = 'Gemini API: Connection error';
+          additional_data = JSON.stringify({ method: 'api_probe', error: error.message });
         } else {
           status = ServerStatus.DOWN;
-          error_message = `Google Cloud Status API: ${error.message}`;
+          error_message = `Gemini API: ${error.message}`;
+          additional_data = JSON.stringify({ method: 'api_probe', error: error.message });
         }
-
-        additional_data = JSON.stringify({ method: 'google_cloud_status_api', error: error.message });
       }
     }
 
-    const serverUrl = this.api_key ? this.api_url : GOOGLE_CLOUD_STATUS_API;
+    const serverUrl = this.api_url;
     const record = await MonitoringRecord.create({
       timestamp: new Date(),
       server_url: serverUrl,
