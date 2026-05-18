@@ -58,13 +58,13 @@ export class CloudflareStatusMonitor {
           // 컴포넌트 fetch 실패 시 전역 indicator로 폴백
         }
 
-        // 아시아/한국 관련 컴포넌트 필터링
-        const asiaKeywords = ['asia', 'korea', 'apac', 'pacific'];
+        // 서울(ICN) 관련 컴포넌트만 필터링
+        const koreanKeywords = ['icn', 'seoul', 'south korea'];
         const asiaComponents = componentsData?.components?.filter(c =>
-          c.name && asiaKeywords.some(kw => c.name.toLowerCase().includes(kw))
+          c.name && koreanKeywords.some(kw => c.name.toLowerCase().includes(kw))
         ) ?? [];
 
-        console.log(`[Cloudflare] Asia components found: ${JSON.stringify(asiaComponents.map(c => c.name))}`);
+        console.log(`[Cloudflare] Korean (ICN) components found: ${JSON.stringify(asiaComponents.map(c => c.name))}`);
 
         if (asiaComponents.length > 0) {
           // 아시아 컴포넌트 기반으로 상태 결정
