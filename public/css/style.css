@@ -1200,6 +1200,18 @@ tbody tr:hover {
     margin-left: 6px;
 }
 
+/* 범례 아이템용: 원형 버튼 스타일 제거, 텍스트 그대로 유지 */
+.legend-item.tooltip-wrap {
+    width: auto;
+    height: auto;
+    background: transparent;
+    border-radius: 0;
+    font-size: inherit;
+    font-weight: inherit;
+    cursor: default;
+    margin-left: 0;
+}
+
 .tooltip-box {
     display: none;
     position: absolute;
