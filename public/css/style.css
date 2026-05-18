@@ -613,7 +613,6 @@ header h1 {
     padding: 24px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     border: 1px solid var(--glass-border);
-    overflow: hidden; /* 차트가 섹션 밖으로 나가지 않도록 */
 }
 
 .section-header {
