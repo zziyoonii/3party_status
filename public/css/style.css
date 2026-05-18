@@ -1141,6 +1141,16 @@ tbody tr:hover {
         font-size: 12px;
     }
 
+    /* 알림 테이블 메시지 컬럼: 모바일에서 2줄로 말줄임 */
+    td:nth-child(3) {
+        max-width: 160px;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        word-break: break-all;
+    }
+
     /* CRITICAL 배너 */
     .critical-banner-content {
         padding: 14px 16px;
@@ -1157,6 +1167,7 @@ tbody tr:hover {
 
     .critical-details {
         font-size: 12px;
+        word-break: break-word;
     }
 
     .alert-info small {
