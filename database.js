@@ -18,12 +18,19 @@ if (databaseUrl.startsWith('sqlite://')) {
   sequelize = new Sequelize({
     dialect: 'sqlite',
     storage: dbPath || './monitoring.db',
-    logging: false, // SQL 로그 비활성화 (필요시 true로 변경)
+    logging: false,
   });
 } else {
-  // 다른 데이터베이스 (PostgreSQL, MySQL 등)
+  // PostgreSQL / MySQL 등 외부 DB
+  const isPostgres = databaseUrl.startsWith('postgres');
   sequelize = new Sequelize(databaseUrl, {
     logging: false,
+    dialectOptions: isPostgres ? {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false, // Railway 자체 서명 인증서 허용
+      },
+    } : {},
   });
 }
 
