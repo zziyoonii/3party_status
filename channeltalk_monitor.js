@@ -190,6 +190,10 @@ export class ChannelTalkStatusMonitor {
     }
 
     if (latestUnresolved && latestUnresolved.error_level === error_level) {
+      await Alert.update(
+        { resolved: 1, resolved_at: now },
+        { where: { resolved: 0, message: { [Op.like]: '%채널톡%' }, id: { [Op.ne]: latestUnresolved.id } } }
+      );
       return latestUnresolved;
     }
 

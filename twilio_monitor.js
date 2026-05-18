@@ -187,6 +187,10 @@ export class TwilioStatusMonitor {
     }
 
     if (latestUnresolved && latestUnresolved.error_level === error_level) {
+      await Alert.update(
+        { resolved: 1, resolved_at: now },
+        { where: { resolved: 0, message: { [Op.like]: '%Twilio%' }, id: { [Op.ne]: latestUnresolved.id } } }
+      );
       return latestUnresolved;
     }
 

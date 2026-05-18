@@ -186,6 +186,10 @@ export class CloudflareStatusMonitor {
     }
 
     if (latestUnresolved && latestUnresolved.error_level === error_level) {
+      await Alert.update(
+        { resolved: 1, resolved_at: now },
+        { where: { resolved: 0, message: { [Op.like]: '%Cloudflare%' }, id: { [Op.ne]: latestUnresolved.id } } }
+      );
       return latestUnresolved;
     }
 
