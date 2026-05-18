@@ -57,6 +57,19 @@
         <!-- LLM 서비스 탭 -->
         <div id="llm-services-tab" class="tab-content active">
 
+        <!-- CRITICAL 이슈 배너 -->
+        <div id="criticalBanner" class="critical-banner" style="display: none;">
+            <div class="critical-banner-content">
+                <div class="critical-icon">🚨</div>
+                <div class="critical-message">
+                    <div class="critical-title">CRITICAL 이슈 감지</div>
+                    <div class="critical-details" id="criticalDetails"></div>
+                    <div class="critical-action" id="criticalAction"></div>
+                </div>
+                <button class="critical-close" onclick="document.getElementById('criticalBanner').style.display='none'">×</button>
+            </div>
+        </div>
+
         <div class="stats-grid">
             <div class="stat-card" data-tooltip="지난 24시간 동안 수집된 모든 모니터링 기록의 총 개수입니다.">
                 <div class="stat-icon">📊</div>
@@ -99,19 +112,6 @@
                     <div class="stat-label">활성 알림 <span class="tooltip-icon">?</span></div>
                     <div class="stat-value" id="activeAlerts">-</div>
                 </div>
-            </div>
-        </div>
-
-        <!-- CRITICAL 이슈 배너 -->
-        <div id="criticalBanner" class="critical-banner" style="display: none;">
-            <div class="critical-banner-content">
-                <div class="critical-icon">🚨</div>
-                <div class="critical-message">
-                    <div class="critical-title">CRITICAL 이슈 감지</div>
-                    <div class="critical-details" id="criticalDetails"></div>
-                    <div class="critical-action" id="criticalAction"></div>
-                </div>
-                <button class="critical-close" onclick="document.getElementById('criticalBanner').style.display='none'">×</button>
             </div>
         </div>
 
@@ -291,6 +291,20 @@
 
         <!-- 외부 서비스 탭 -->
         <div id="external-services-tab" class="tab-content">
+
+            <!-- CRITICAL 이슈 배너 (외부 서비스용) -->
+            <div id="externalCriticalBanner" class="critical-banner" style="display: none;">
+                <div class="critical-banner-content">
+                    <div class="critical-icon">🚨</div>
+                    <div class="critical-message">
+                        <div class="critical-title">CRITICAL 이슈 감지</div>
+                        <div class="critical-details" id="externalCriticalDetails"></div>
+                        <div class="critical-action" id="externalCriticalAction"></div>
+                    </div>
+                    <button class="critical-close" onclick="document.getElementById('externalCriticalBanner').style.display='none'">×</button>
+                </div>
+            </div>
+
             <!-- 외부 서비스 요약 통계 -->
             <div class="stats-grid">
                 <div class="stat-card" data-tooltip="지난 24시간 동안 수집된 외부 서비스 모니터링 기록의 총 개수입니다.">
@@ -402,19 +416,6 @@
                             <span class="stat-value-small" id="channeltalkHealthRate">-</span>
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- CRITICAL 이슈 배너 (외부 서비스용) -->
-            <div id="externalCriticalBanner" class="critical-banner" style="display: none;">
-                <div class="critical-banner-content">
-                    <div class="critical-icon">🚨</div>
-                    <div class="critical-message">
-                        <div class="critical-title">CRITICAL 이슈 감지</div>
-                        <div class="critical-details" id="externalCriticalDetails"></div>
-                        <div class="critical-action" id="externalCriticalAction"></div>
-                    </div>
-                    <button class="critical-close" onclick="document.getElementById('externalCriticalBanner').style.display='none'">×</button>
                 </div>
             </div>
 
@@ -532,7 +533,7 @@
                                     <th>시간</th>
                                     <th>수준</th>
                                     <th>메시지</th>
-                                    <th>상태</th>
+                                    <th>작업</th>
                                 </tr>
                             </thead>
                             <tbody>

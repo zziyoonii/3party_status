@@ -45,64 +45,59 @@ export class CloudflareStatusMonitor {
       
       if (statusResponse.status === 200) {
         const statusData = statusResponse.data;
-        
-        // Statuspage.io의 상태 확인
-        // status.indicator: "none", "minor", "major", "critical", "maintenance"
         const indicator = statusData?.status?.indicator || 'unknown';
-        
-        if (indicator === 'none') {
-          status = ServerStatus.HEALTHY;
-        } else if (indicator === 'minor' || indicator === 'maintenance') {
-          status = ServerStatus.DEGRADED;
-          error_message = `Cloudflare Status: ${indicator}`;
-        } else if (indicator === 'major' || indicator === 'critical') {
-          status = ServerStatus.DOWN;
-          error_message = `Cloudflare Status: ${indicator}`;
+
+        // 컴포넌트 정보 항상 fetch (아시아 리전 필터링 목적)
+        let componentsData = null;
+        try {
+          const componentsResponse = await axios.get(componentsUrl, { timeout: this.timeout });
+          if (componentsResponse.status === 200) {
+            componentsData = componentsResponse.data;
+          }
+        } catch (e) {
+          // 컴포넌트 fetch 실패 시 전역 indicator로 폴백
         }
-        
-        // 컴포넌트 상태도 확인 (전체 상태가 none일 때는 무시)
-        // 전체 상태가 none이면 일부 지역 컴포넌트 문제는 무시 (전체 서비스는 정상)
-        if (indicator !== 'none') {
-          try {
-            const componentsResponse = await axios.get(componentsUrl, {
-              timeout: this.timeout,
-            });
-            
-            if (componentsResponse.status === 200) {
-              const componentsData = componentsResponse.data;
-              additional_data = JSON.stringify({
-                status: statusData,
-                components: componentsData,
-              });
-              
-              // 전체 상태가 이미 문제가 있는 경우에만 컴포넌트 세부 정보 확인
-              // 전체 상태가 none이면 컴포넌트 체크는 하지 않음
-            }
-          } catch (e) {
-            // 컴포넌트 체크 실패는 무시 (전체 상태가 더 중요)
+
+        // 서울(ICN) 관련 컴포넌트만 필터링
+        const koreanKeywords = ['icn', 'seoul', 'south korea'];
+        const asiaComponents = componentsData?.components?.filter(c =>
+          c.name && koreanKeywords.some(kw => c.name.toLowerCase().includes(kw))
+        ) ?? [];
+
+        console.log(`[Cloudflare] Korean (ICN) components found: ${JSON.stringify(asiaComponents.map(c => c.name))}`);
+
+        if (asiaComponents.length > 0) {
+          // 아시아 컴포넌트 기반으로 상태 결정
+          const affectedComponents = asiaComponents.filter(c => c.status !== 'operational');
+          const hasDown = asiaComponents.some(c => c.status === 'major_outage');
+          const hasDegraded = asiaComponents.some(c =>
+            ['degraded_performance', 'partial_outage', 'under_maintenance'].includes(c.status)
+          );
+
+          if (hasDown) {
+            status = ServerStatus.DOWN;
+            error_message = `Cloudflare Asia 컴포넌트 이상: ${affectedComponents.map(c => `${c.name} (${c.status})`).join(', ')}`;
+          } else if (hasDegraded) {
+            status = ServerStatus.DEGRADED;
+            error_message = `Cloudflare Asia 컴포넌트 이상: ${affectedComponents.map(c => `${c.name} (${c.status})`).join(', ')}`;
+          } else {
+            status = ServerStatus.HEALTHY;
           }
         } else {
-          // 전체 상태가 none일 때는 컴포넌트 정보만 저장 (상태 변경 없음)
-          try {
-            const componentsResponse = await axios.get(componentsUrl, {
-              timeout: this.timeout,
-            });
-            
-            if (componentsResponse.status === 200) {
-              const componentsData = componentsResponse.data;
-              additional_data = JSON.stringify({
-                status: statusData,
-                components: componentsData,
-              });
-            }
-          } catch (e) {
-            // 컴포넌트 체크 실패는 무시
+          // 아시아 컴포넌트 없으면 전역 indicator로 폴백
+          // minor는 한국과 무관한 지역 이슈일 가능성이 높으므로 HEALTHY로 처리
+          if (indicator === 'none' || indicator === 'minor') {
+            status = ServerStatus.HEALTHY;
+          } else if (indicator === 'maintenance') {
+            status = ServerStatus.DEGRADED;
+            error_message = `Cloudflare Status: ${indicator}`;
+          } else if (indicator === 'major' || indicator === 'critical') {
+            status = ServerStatus.DOWN;
+            error_message = `Cloudflare Status: ${indicator}`;
           }
         }
-        
-        if (!additional_data) {
-          additional_data = JSON.stringify(statusData);
-        }
+
+        additional_data = JSON.stringify({ status: statusData, components: componentsData });
       } else {
         status = ServerStatus.DOWN;
         error_message = `Cloudflare Status API error: ${statusResponse.status}`;
@@ -191,10 +186,11 @@ export class CloudflareStatusMonitor {
     }
 
     if (latestUnresolved && latestUnresolved.error_level === error_level) {
-      const cooldownMs = settings.ALERT_COOLDOWN_MINUTES * 60 * 1000;
-      if ((now - new Date(latestUnresolved.timestamp)) < cooldownMs) {
-        return latestUnresolved;
-      }
+      await Alert.update(
+        { resolved: 1, resolved_at: now },
+        { where: { resolved: 0, message: { [Op.like]: '%Cloudflare%' }, id: { [Op.ne]: latestUnresolved.id } } }
+      );
+      return latestUnresolved;
     }
 
     return await Alert.create({ timestamp: now, error_level, message });

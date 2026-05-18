@@ -43,64 +43,58 @@ export class TwilioStatusMonitor {
       
       if (statusResponse.status === 200) {
         const statusData = statusResponse.data;
-        
-        // Statuspage.io의 상태 확인
-        // status.indicator: "none", "minor", "major", "critical", "maintenance"
         const indicator = statusData?.status?.indicator || 'unknown';
-        
-        if (indicator === 'none') {
-          status = ServerStatus.HEALTHY;
-        } else if (indicator === 'minor' || indicator === 'maintenance') {
-          status = ServerStatus.DEGRADED;
-          error_message = `Twilio Status: ${indicator}`;
-        } else if (indicator === 'major' || indicator === 'critical') {
-          status = ServerStatus.DOWN;
-          error_message = `Twilio Status: ${indicator}`;
+
+        // 컴포넌트 정보 항상 fetch (한국 관련 필터링 목적)
+        let componentsData = null;
+        try {
+          const componentsResponse = await axios.get(componentsUrl, { timeout: this.timeout });
+          if (componentsResponse.status === 200) {
+            componentsData = componentsResponse.data;
+          }
+        } catch (e) {
+          // 컴포넌트 fetch 실패 시 전역 indicator로 폴백
         }
-        
-        // 컴포넌트 상태도 확인 (전체 상태가 none일 때는 무시)
-        // 전체 상태가 none이면 일부 지역 컴포넌트 문제는 무시 (전체 서비스는 정상)
-        if (indicator !== 'none') {
-          try {
-            const componentsResponse = await axios.get(componentsUrl, {
-              timeout: this.timeout,
-            });
-            
-            if (componentsResponse.status === 200) {
-              const componentsData = componentsResponse.data;
-              additional_data = JSON.stringify({
-                status: statusData,
-                components: componentsData,
-              });
-              
-              // 전체 상태가 이미 문제가 있는 경우에만 컴포넌트 세부 정보 확인
-              // 전체 상태가 none이면 컴포넌트 체크는 하지 않음
-            }
-          } catch (e) {
-            // 컴포넌트 체크 실패는 무시 (전체 상태가 더 중요)
+
+        // 한국 관련 컴포넌트 필터링
+        const koreanKeywords = ['korea', 'seoul', 'apac', 'asia pacific'];
+        const koreanComponents = componentsData?.components?.filter(c =>
+          c.name && koreanKeywords.some(kw => c.name.toLowerCase().includes(kw))
+        ) ?? [];
+
+        console.log(`[Twilio] Korean components found: ${JSON.stringify(koreanComponents.map(c => c.name))}`);
+
+        if (koreanComponents.length > 0) {
+          const affectedComponents = koreanComponents.filter(c => c.status !== 'operational');
+          const hasDown = koreanComponents.some(c => c.status === 'major_outage');
+          const hasDegraded = koreanComponents.some(c =>
+            ['degraded_performance', 'partial_outage', 'under_maintenance'].includes(c.status)
+          );
+
+          if (hasDown) {
+            status = ServerStatus.DOWN;
+            error_message = `Twilio 한국 서비스 이상: ${affectedComponents.map(c => `${c.name} (${c.status})`).join(', ')}`;
+          } else if (hasDegraded) {
+            status = ServerStatus.DEGRADED;
+            error_message = `Twilio 한국 서비스 이상: ${affectedComponents.map(c => `${c.name} (${c.status})`).join(', ')}`;
+          } else {
+            status = ServerStatus.HEALTHY;
           }
         } else {
-          // 전체 상태가 none일 때는 컴포넌트 정보만 저장 (상태 변경 없음)
-          try {
-            const componentsResponse = await axios.get(componentsUrl, {
-              timeout: this.timeout,
-            });
-            
-            if (componentsResponse.status === 200) {
-              const componentsData = componentsResponse.data;
-              additional_data = JSON.stringify({
-                status: statusData,
-                components: componentsData,
-              });
-            }
-          } catch (e) {
-            // 컴포넌트 체크 실패는 무시
+          // 한국 컴포넌트 없으면 전역 indicator로 폴백
+          // minor는 한국과 무관한 지역 이슈일 가능성 높음 → HEALTHY
+          if (indicator === 'none' || indicator === 'minor') {
+            status = ServerStatus.HEALTHY;
+          } else if (indicator === 'maintenance') {
+            status = ServerStatus.DEGRADED;
+            error_message = `Twilio Status: ${indicator}`;
+          } else if (indicator === 'major' || indicator === 'critical') {
+            status = ServerStatus.DOWN;
+            error_message = `Twilio Status: ${indicator}`;
           }
         }
-        
-        if (!additional_data) {
-          additional_data = JSON.stringify(statusData);
-        }
+
+        additional_data = JSON.stringify({ status: statusData, components: componentsData });
       } else {
         status = ServerStatus.DOWN;
         error_message = `Twilio Status API error: ${statusResponse.status}`;
@@ -187,10 +181,11 @@ export class TwilioStatusMonitor {
     }
 
     if (latestUnresolved && latestUnresolved.error_level === error_level) {
-      const cooldownMs = settings.ALERT_COOLDOWN_MINUTES * 60 * 1000;
-      if ((now - new Date(latestUnresolved.timestamp)) < cooldownMs) {
-        return latestUnresolved;
-      }
+      await Alert.update(
+        { resolved: 1, resolved_at: now },
+        { where: { resolved: 0, message: { [Op.like]: '%Twilio%' }, id: { [Op.ne]: latestUnresolved.id } } }
+      );
+      return latestUnresolved;
     }
 
     return await Alert.create({ timestamp: now, error_level, message });

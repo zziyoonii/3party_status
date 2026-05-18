@@ -1242,23 +1242,15 @@ function displayCriticalBanner(issues) {
     const banner = document.getElementById('criticalBanner');
     const detailsEl = document.getElementById('criticalDetails');
     const actionEl = document.getElementById('criticalAction');
-    
-    if (issues.length === 1) {
-        const issue = issues[0];
-        detailsEl.innerHTML = `<strong>${issue.provider}</strong> 서비스에서 문제가 <strong>${issue.duration}분</strong> 이상 지속되고 있습니다.`;
-        actionEl.textContent = getActionMessage(issue.provider);
-    } else {
-        // 불렛 포인트로 각 서비스 구분
-        const issueList = issues.map(i => 
-            `• <strong>${i.provider}</strong>: ${i.duration}분 지속`
-        ).join('<br>');
-        detailsEl.innerHTML = `다음 서비스들에서 문제가 지속되고 있습니다:<br>${issueList}`;
-        
-        // 여러 서비스 장애 시 조치 메시지
-        const affectedServices = issues.map(i => i.provider).join(', ');
-        actionEl.textContent = `${affectedServices} 서비스 장애로 인해 서비스에 영향을 줄 수 있습니다. 정상 작동 중인 서비스로 대체하거나 사용자에게 공지를 발송하세요.`;
-    }
-    
+
+    const issueList = issues.map(i =>
+        `• <strong>${i.provider}</strong>: ${i.duration}분 이상 지속`
+    ).join('<br>');
+    detailsEl.innerHTML = issueList;
+    actionEl.textContent = issues.length === 1
+        ? getActionMessage(issues[0].provider)
+        : `${issues.map(i => i.provider).join(', ')} 서비스 장애로 인해 서비스에 영향을 줄 수 있습니다. 정상 작동 중인 서비스로 대체하거나 사용자에게 공지를 발송하세요.`;
+
     banner.style.display = 'block';
 }
 
@@ -2278,21 +2270,15 @@ function displayExternalCriticalBanner(issues) {
     const banner = document.getElementById('externalCriticalBanner');
     const detailsEl = document.getElementById('externalCriticalDetails');
     const actionEl = document.getElementById('externalCriticalAction');
-    
-    if (issues.length === 1) {
-        const issue = issues[0];
-        detailsEl.innerHTML = `<strong>${issue.provider}</strong> 서비스에서 문제가 <strong>${issue.duration}분</strong> 이상 지속되고 있습니다.`;
-        actionEl.textContent = getExternalActionMessage(issue.provider);
-    } else {
-        const issueList = issues.map(i => 
-            `• <strong>${i.provider}</strong>: ${i.duration}분 지속`
-        ).join('<br>');
-        detailsEl.innerHTML = `다음 서비스들에서 문제가 지속되고 있습니다:<br>${issueList}`;
-        
-        const affectedServices = issues.map(i => i.provider).join(', ');
-        actionEl.textContent = `${affectedServices} 서비스 장애로 인해 서비스에 영향을 줄 수 있습니다. 관련 기능을 확인하고 사용자에게 공지를 발송하세요.`;
-    }
-    
+
+    const issueList = issues.map(i =>
+        `• <strong>${i.provider}</strong>: ${i.duration}분 이상 지속`
+    ).join('<br>');
+    detailsEl.innerHTML = issueList;
+    actionEl.textContent = issues.length === 1
+        ? getExternalActionMessage(issues[0].provider)
+        : `${issues.map(i => i.provider).join(', ')} 서비스 장애로 인해 서비스에 영향을 줄 수 있습니다. 관련 기능을 확인하고 사용자에게 공지를 발송하세요.`;
+
     banner.style.display = 'block';
 }
 

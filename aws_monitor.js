@@ -124,10 +124,11 @@ export class AWSStatusMonitor {
     }
 
     if (latestUnresolved && latestUnresolved.error_level === error_level) {
-      const cooldownMs = settings.ALERT_COOLDOWN_MINUTES * 60 * 1000;
-      if ((now - new Date(latestUnresolved.timestamp)) < cooldownMs) {
-        return latestUnresolved;
-      }
+      await Alert.update(
+        { resolved: 1, resolved_at: now },
+        { where: { resolved: 0, message: { [Op.like]: '%AWS%' }, id: { [Op.ne]: latestUnresolved.id } } }
+      );
+      return latestUnresolved;
     }
 
     return await Alert.create({ timestamp: now, error_level, message });
