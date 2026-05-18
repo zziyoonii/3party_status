@@ -1,6 +1,7 @@
 /**
  * Gemini Status 모니터링 모듈
- * 참고: Google은 공식 Status API를 제공하지 않으므로, Google Cloud Status 페이지를 모니터링합니다.
+ * Google Cloud Status API (status.cloud.google.com/api/v2) 사용
+ * API 키가 있으면 Gemini API 직접 호출로 더 정확하게 모니터링
  */
 import axios from 'axios';
 import { MonitoringRecord, ServerStatus, ErrorLevel, Alert } from './models/index.js';
@@ -9,20 +10,19 @@ import { Op } from 'sequelize';
 import { SlackNotifier } from './slack_notifier.js';
 import { AlertManager } from './alert_manager.js';
 
+// Google Cloud 공식 Status API (Statuspage.io 형식)
+const GOOGLE_CLOUD_STATUS_API = 'https://status.cloud.google.com/api/v2';
+
 export class GeminiStatusMonitor {
-  /**
-   * @param {import('sequelize').Sequelize} sequelize - Sequelize 인스턴스
-   */
   constructor(sequelize) {
     this.sequelize = sequelize;
     this.api_url = settings.GEMINI_API_URL;
     this.api_key = settings.GEMINI_API_KEY;
-    this.status_url = settings.GEMINI_STATUS_URL;
-    this.timeout = settings.GEMINI_STATUS_TIMEOUT * 1000; // 밀리초로 변환
+    this.timeout = settings.GEMINI_STATUS_TIMEOUT * 1000;
     this.slackNotifier = new SlackNotifier(sequelize);
     this.alertManager = new AlertManager();
   }
-  
+
   async checkGeminiStatus() {
     const startTime = Date.now();
     let status = ServerStatus.UNKNOWN;
@@ -30,27 +30,24 @@ export class GeminiStatusMonitor {
     let error_message = null;
     let http_status_code = null;
     let additional_data = null;
-    
-    // API 키가 있으면 Gemini API를 직접 호출 (더 정확함)
+
+    // API 키가 있으면 Gemini API 직접 호출 (가장 정확)
     if (this.api_key) {
       try {
         const modelsUrl = `${this.api_url}/models?key=${this.api_key}`;
         const response = await axios.get(modelsUrl, {
           timeout: this.timeout,
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
         });
-        
+
         response_time_ms = Date.now() - startTime;
         http_status_code = response.status;
-        
+
         if (response.status === 200 && response.data && response.data.models) {
           status = ServerStatus.HEALTHY;
           additional_data = JSON.stringify({
             method: 'api_direct',
             models_count: response.data.models.length,
-            note: 'Gemini API models endpoint check successful',
           });
         } else {
           status = ServerStatus.DEGRADED;
@@ -58,10 +55,9 @@ export class GeminiStatusMonitor {
         }
       } catch (error) {
         response_time_ms = Date.now() - startTime;
-        
+
         if (error.response) {
           http_status_code = error.response.status;
-          
           if (error.response.status === 401 || error.response.status === 403) {
             status = ServerStatus.DEGRADED;
             error_message = 'Gemini API: Authentication error (invalid API key?)';
@@ -75,89 +71,91 @@ export class GeminiStatusMonitor {
         } else if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
           status = ServerStatus.DOWN;
           error_message = 'Gemini API: Request timeout';
-        } else if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
-          status = ServerStatus.DOWN;
-          error_message = 'Gemini API: Connection error';
         } else {
           status = ServerStatus.DOWN;
           error_message = `Gemini API: ${error.message}`;
         }
-        
-        additional_data = JSON.stringify({
-          method: 'api_direct',
-          error: error.message,
-        });
+
+        additional_data = JSON.stringify({ method: 'api_direct', error: error.message });
       }
     } else {
-      // API 키가 없으면 Status 페이지 체크 (덜 정확함)
+      // API 키 없으면 Google Cloud 공식 Status API 사용
       try {
-        const response = await axios.get(this.status_url, {
-          timeout: this.timeout,
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (compatible; StatusMonitor/1.0)',
-          },
-        });
-        
+        const statusUrl = `${GOOGLE_CLOUD_STATUS_API}/status.json`;
+        const statusResponse = await axios.get(statusUrl, { timeout: this.timeout });
+
         response_time_ms = Date.now() - startTime;
-        http_status_code = response.status;
-        
-        if (response.status === 200) {
-          // HTML 페이지에서 상태 정보 추출 시도
-          const html = response.data;
-          
-          // Google Cloud Status 페이지는 복잡한 구조를 가지고 있어서
-          // 단순 키워드 검색보다는 페이지 접근 성공 여부로 판단
-          // 실제로는 Status 페이지에 Gemini 전용 섹션이 없으므로
-          // 페이지가 접근 가능하면 정상으로 간주 (더 보수적인 접근)
-          
-          // 다만 명확한 오류 키워드가 있으면 DEGRADED로 설정
-          const hasCriticalIncident = html.includes('critical') || 
-                                      html.includes('major outage') ||
-                                      html.includes('service disruption');
-          
-          if (hasCriticalIncident) {
-            status = ServerStatus.DEGRADED;
-            error_message = 'Gemini: Potential critical incident detected on Google Cloud Status page';
-          } else {
-            // 페이지 접근 성공 = 정상 (Google Cloud Status는 모든 서비스 통합 페이지)
-            // Gemini 전용 Status API가 없으므로 페이지 접근 가능 여부로 판단
+        http_status_code = statusResponse.status;
+
+        if (statusResponse.status === 200) {
+          const statusData = statusResponse.data;
+          // Statuspage.io 형식: status.indicator = "none" | "minor" | "major" | "critical"
+          const indicator = statusData?.status?.indicator || 'unknown';
+
+          if (indicator === 'none') {
             status = ServerStatus.HEALTHY;
+          } else if (indicator === 'minor' || indicator === 'maintenance') {
+            status = ServerStatus.DEGRADED;
+            error_message = `Google Cloud Status: ${indicator}`;
+          } else if (indicator === 'major' || indicator === 'critical') {
+            status = ServerStatus.DOWN;
+            error_message = `Google Cloud Status: ${indicator}`;
+          } else {
+            status = ServerStatus.DEGRADED;
+            error_message = `Google Cloud Status: unknown indicator (${indicator})`;
           }
-          
-          additional_data = JSON.stringify({
-            method: 'status_page_scraping',
-            page_accessible: true,
-            has_critical_incident: hasCriticalIncident,
-            note: 'Google does not provide official Status API for Gemini. Monitoring Google Cloud Status page accessibility. For more accurate monitoring, set GEMINI_API_KEY in .env file to use direct API calls.',
-          });
+
+          // 컴포넌트 중 AI Platform / Vertex AI 관련 문제 확인
+          try {
+            const componentsResponse = await axios.get(`${GOOGLE_CLOUD_STATUS_API}/components.json`, { timeout: this.timeout });
+            if (componentsResponse.status === 200) {
+              const components = componentsResponse.data?.components || [];
+              const aiComponents = components.filter(c =>
+                c?.name && (
+                  c.name.includes('Vertex AI') ||
+                  c.name.includes('AI Platform') ||
+                  c.name.includes('Generative')
+                )
+              );
+              const problematic = aiComponents.filter(c => c.status && c.status !== 'operational');
+
+              if (problematic.length > 0 && status === ServerStatus.HEALTHY) {
+                status = ServerStatus.DEGRADED;
+                error_message = `Gemini/AI 관련 컴포넌트 이상: ${problematic.map(c => c.name).join(', ')}`;
+              }
+
+              additional_data = JSON.stringify({
+                method: 'google_cloud_status_api',
+                indicator,
+                ai_components: aiComponents.map(c => ({ name: c.name, status: c.status })),
+              });
+            }
+          } catch {
+            additional_data = JSON.stringify({ method: 'google_cloud_status_api', indicator });
+          }
         } else {
           status = ServerStatus.DOWN;
-          error_message = `Gemini Status page error: ${response.status}`;
+          error_message = `Google Cloud Status API error: ${statusResponse.status}`;
         }
       } catch (error) {
         response_time_ms = Date.now() - startTime;
-        
+
         if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
           status = ServerStatus.DOWN;
-          error_message = 'Gemini Status page request timeout';
+          error_message = 'Google Cloud Status API: Request timeout';
         } else if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
           status = ServerStatus.DOWN;
-          error_message = 'Gemini Status page connection error';
+          error_message = 'Google Cloud Status API: Connection error';
         } else {
           status = ServerStatus.DOWN;
-          error_message = `Unexpected error checking Gemini Status: ${error.message}`;
+          error_message = `Google Cloud Status API: ${error.message}`;
         }
-        
-        additional_data = JSON.stringify({
-          method: 'status_page_scraping',
-          error: error.message,
-        });
+
+        additional_data = JSON.stringify({ method: 'google_cloud_status_api', error: error.message });
       }
     }
-    
-    // 모니터링 기록 저장
-    // API 키가 있으면 실제 API URL, 없으면 Status 페이지 URL 저장
-    const serverUrl = this.api_key ? this.api_url : this.status_url;
+
+    const serverUrl = this.api_key ? this.api_url : GOOGLE_CLOUD_STATUS_API;
     const record = await MonitoringRecord.create({
       timestamp: new Date(),
       server_url: serverUrl,

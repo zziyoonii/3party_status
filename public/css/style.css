@@ -954,18 +954,231 @@ tbody tr:hover {
 }
 
 @media (max-width: 768px) {
+    body {
+        padding: 12px;
+    }
+
+    /* 헤더 */
     header {
         flex-direction: column;
-        gap: 16px;
+        gap: 12px;
+        text-align: center;
+        padding: 16px 20px;
+        border-radius: 16px;
+    }
+
+    header h1 {
+        font-size: 20px;
+    }
+
+    .header-info {
+        flex-direction: column;
+        gap: 8px;
+        width: 100%;
+    }
+
+    .btn-refresh {
+        width: 100%;
         text-align: center;
     }
 
-    .main-content,
-    .tables-section {
+    /* 탭 */
+    .tabs-container {
+        border-radius: 12px;
+        padding: 6px;
+        margin-bottom: 16px;
+    }
+
+    .tab-button {
+        padding: 10px 8px;
+        font-size: 13px;
+    }
+
+    /* 통계 그리드: 3열 2행 */
+    .stats-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+    }
+
+    .stat-card {
+        padding: 10px 8px;
+        border-radius: 12px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+
+    .stat-icon {
+        font-size: 16px;
+        width: 28px;
+        height: 28px;
+    }
+
+    .stat-value {
+        font-size: 16px;
+    }
+
+    .stat-label {
+        font-size: 10px;
+    }
+
+    /* 툴팁: 모바일에서 오버플로우 방지 */
+    .stat-card::after {
+        width: 200px;
+        font-size: 11px;
+        left: 0;
+        transform: translateX(0);
+    }
+
+    .stat-card:hover::after {
+        transform: translateX(0) translateY(-4px);
+    }
+
+    /* Provider 상태 카드 */
+    #llm-services-tab .provider-status-grid {
         grid-template-columns: 1fr;
     }
 
+    #external-services-tab .provider-status-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .provider-status-card {
+        border-radius: 16px;
+        padding: 16px;
+    }
+
+    .provider-header h3 {
+        font-size: 15px;
+    }
+
+    /* 차트 섹션 */
+    .main-content,
+    .tables-section {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    #llm-services-tab .main-content,
+    #external-services-tab .main-content {
+        grid-template-columns: 1fr;
+    }
+
+    .chart-section {
+        padding: 16px;
+        border-radius: 16px;
+    }
+
+    .section-header {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .section-header h2 {
+        font-size: 16px;
+        flex: 1 1 100%;
+    }
+
+    .chart-legend-static {
+        flex: 1;
+        font-size: 11px;
+        gap: 8px;
+    }
+
+    .filter-select {
+        font-size: 13px;
+        padding: 6px 28px 6px 10px;
+    }
+
+    /* Provider별 도넛 차트 그리드 */
+    #llm-services-tab .provider-charts-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+    }
+
+    #external-services-tab .provider-charts-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    .chart-container-small {
+        height: 130px;
+        max-width: 100%;
+    }
+
+    .provider-chart-label {
+        font-size: 13px;
+        margin-bottom: 6px;
+    }
+
+    .chart-container {
+        height: 220px;
+    }
+
+    #llm-services-tab .chart-container,
+    #external-services-tab .chart-container {
+        height: 220px;
+    }
+
+    /* 테이블 */
+    .table-card {
+        padding: 16px;
+        border-radius: 16px;
+    }
+
+    .filter-controls {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .filter-controls .filter-select {
+        flex: 1;
+        min-width: 120px;
+    }
+
+    th, td {
+        padding: 8px 6px;
+        font-size: 12px;
+    }
+
+    /* CRITICAL 배너 */
+    .critical-banner-content {
+        padding: 14px 16px;
+        gap: 10px;
+    }
+
+    .critical-icon {
+        font-size: 24px;
+    }
+
+    .critical-title {
+        font-size: 15px;
+    }
+
+    .critical-details {
+        font-size: 12px;
+    }
+
+    .alert-info small {
+        font-size: 11px;
+    }
+}
+
+/* 초소형 화면 (375px 이하) */
+@media (max-width: 375px) {
     .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    #external-services-tab .provider-status-grid {
+        grid-template-columns: 1fr;
+    }
+
+    #llm-services-tab .provider-charts-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    #external-services-tab .provider-charts-grid {
         grid-template-columns: repeat(2, 1fr);
     }
 }

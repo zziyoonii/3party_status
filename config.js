@@ -25,11 +25,10 @@ export const settings = {
   CLAUDE_STATUS_API_URL: process.env.CLAUDE_STATUS_API_URL || 'https://status.anthropic.com/api/v2',
   CLAUDE_STATUS_TIMEOUT: parseInt(process.env.CLAUDE_STATUS_TIMEOUT || '10', 10), // 초
   
-  // Gemini Status 설정 (공식 Status API 없음, API 직접 호출 또는 Status 페이지 모니터링)
+  // Gemini Status 설정 (Google Cloud Status API 사용, API 키 있으면 Gemini API 직접 호출)
   GEMINI_STATUS_ENABLED: process.env.GEMINI_STATUS_ENABLED !== 'false', // 기본값: true
   GEMINI_API_URL: process.env.GEMINI_API_URL || 'https://generativelanguage.googleapis.com/v1beta',
-  GEMINI_API_KEY: process.env.GEMINI_API_KEY || '', // Gemini API 키 (선택사항, 없으면 Status 페이지 모니터링)
-  GEMINI_STATUS_URL: process.env.GEMINI_STATUS_URL || 'https://status.cloud.google.com', // Status 페이지 (API 키 없을 때 사용)
+  GEMINI_API_KEY: process.env.GEMINI_API_KEY || '', // Gemini API 키 (선택사항, 없으면 Google Cloud Status API 사용)
   GEMINI_STATUS_TIMEOUT: parseInt(process.env.GEMINI_STATUS_TIMEOUT || '10', 10), // 초
   
   // 외부 서비스 모니터링 설정
