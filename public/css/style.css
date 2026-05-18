@@ -788,6 +788,12 @@ td {
     white-space: nowrap;
 }
 
+/* 모니터링 기록 테이블: 시간 컬럼 줄바꿈 방지 */
+#recordsTable td:first-child,
+#externalRecordsTable td:first-child {
+    white-space: nowrap;
+}
+
 td.error-message-cell {
     max-width: 400px;
     min-width: 200px;
