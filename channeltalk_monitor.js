@@ -49,10 +49,9 @@ export class ChannelTalkStatusMonitor {
         // status.indicator: "none", "minor", "major", "critical", "maintenance"
         const indicator = statusData?.status?.indicator || 'unknown';
         
-        if (indicator === 'none' || indicator === 'minor') {
-          // minor는 경미한 문제로 대부분의 서비스는 정상 작동하므로 HEALTHY로 처리
+        if (indicator === 'none') {
           status = ServerStatus.HEALTHY;
-        } else if (indicator === 'maintenance') {
+        } else if (indicator === 'minor' || indicator === 'maintenance') {
           status = ServerStatus.DEGRADED;
           error_message = `채널톡 Status: ${indicator}`;
         } else if (indicator === 'major' || indicator === 'critical') {
