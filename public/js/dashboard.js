@@ -132,7 +132,7 @@ function initializeCharts() {
         'gemini': '#f59e0b'
     };
     
-    providers.forEach(provider => {
+    providers.forEach((provider, index) => {
         const ctx = document.getElementById(`${provider}StatusChart`).getContext('2d');
         statusCharts[provider] = new Chart(ctx, {
             type: 'doughnut',
@@ -153,6 +153,7 @@ function initializeCharts() {
                 maintainAspectRatio: false,
                 plugins: {
                     legend: {
+                        display: index === 0,
                         position: 'bottom',
                         labels: {
                             color: '#f1f5f9',
@@ -1119,8 +1120,17 @@ function getProviderTitle(provider) {
 
 function updateLastUpdateTime() {
     const now = new Date();
-    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-    document.getElementById('lastUpdate').textContent = `마지막 업데이트: ${timeStr} (1분마다 자동 갱신)`;
+    const kstStr = now.toLocaleString('ko-KR', {
+        timeZone: 'Asia/Seoul',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+    });
+    document.getElementById('lastUpdate').textContent = `마지막 업데이트: ${kstStr} KST (1분마다 자동 갱신)`;
     
     // 업데이트 표시 애니메이션
     const updateEl = document.getElementById('lastUpdate');
@@ -1266,15 +1276,15 @@ function getActionMessage(provider) {
 
 // 외부 서비스 차트 초기화
 function initializeExternalCharts() {
-    const providers = ['cloudflare', 'twilio', 'channeltalk', 'aws'];
-    
-    providers.forEach(provider => {
+    const providers = ['aws', 'cloudflare', 'twilio', 'channeltalk'];
+
+    providers.forEach((provider, index) => {
         // 이미 차트가 존재하면 destroy
         if (externalStatusCharts[provider]) {
             externalStatusCharts[provider].destroy();
             externalStatusCharts[provider] = null;
         }
-        
+
         const ctx = document.getElementById(`${provider}StatusChart`)?.getContext('2d');
         if (ctx) {
             externalStatusCharts[provider] = new Chart(ctx, {
@@ -1296,6 +1306,7 @@ function initializeExternalCharts() {
                     maintainAspectRatio: false,
                     plugins: {
                         legend: {
+                            display: index === 0,
                             position: 'bottom',
                             labels: {
                                 color: '#f1f5f9',
@@ -1375,16 +1386,46 @@ function initializeExternalCharts() {
 // 외부 서비스 대시보드 로드
 function loadExternalServicesDashboard() {
     // 차트가 아직 초기화되지 않았을 때만 초기화
-    const needsInit = !externalStatusCharts.cloudflare || !externalResponseTimeChart;
+    const needsInit = !externalStatusCharts.aws || !externalResponseTimeChart;
     if (needsInit) {
         initializeExternalCharts();
     }
     loadExternalProviderStatuses();
     loadExternalRecords();
     loadExternalAlerts();
+    loadExternalStats();
     checkExternalCriticalIssues();
     updateExternalStatusChart();
     updateExternalResponseTimeChart();
+}
+
+// 외부 서비스 통계 요약 로드
+async function loadExternalStats() {
+    try {
+        const externalProviders = ['aws', 'cloudflare', 'twilio', 'channeltalk'];
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const results = await Promise.all(
+            externalProviders.map(p =>
+                fetch(`${API_BASE}/monitor/stats?provider=${p}&hours=24`)
+                    .then(r => r.json())
+                    .catch(() => ({}))
+            )
+        );
+        let total = 0, healthy = 0, error = 0;
+        results.forEach(s => {
+            total += s.total_records || 0;
+            healthy += s.healthy_count || 0;
+            error += (s.total_records || 0) - (s.healthy_count || 0);
+        });
+        const totalEl = document.getElementById('extTotalRecords');
+        const healthyEl = document.getElementById('extHealthyCount');
+        const errorEl = document.getElementById('extErrorCount');
+        if (totalEl) totalEl.textContent = total.toLocaleString();
+        if (healthyEl) healthyEl.textContent = healthy.toLocaleString();
+        if (errorEl) errorEl.textContent = Math.max(0, error).toLocaleString();
+    } catch (e) {
+        console.error('Load external stats error:', e);
+    }
 }
 
 // 외부 서비스 Provider 상태 로드 (병렬 처리로 최적화)
@@ -1967,7 +2008,7 @@ async function loadExternalRecords() {
                 const tbody = document.querySelector('#externalRecordsTable tbody');
                 if (sortedRecords.length === 0) {
                     if (tbody) {
-                        tbody.innerHTML = '<tr><td colspan="5" class="empty-state">기록이 없습니다.</td></tr>';
+                        tbody.innerHTML = '<tr><td colspan="5" class="empty-state">아직 기록이 없습니다. 모니터링 수집 중이며 잠시 후 새로고침하면 표시됩니다.</td></tr>';
                     }
                     isLoadingExternalRecords = false;
                     return;
@@ -2053,7 +2094,7 @@ async function loadExternalRecords() {
         }
         
         if (sortedRecords.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="loading">기록이 없습니다.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" class="empty-state">아직 기록이 없습니다. 모니터링 수집 중이며 잠시 후 새로고침하면 표시됩니다.</td></tr>';
             isLoadingExternalRecords = false;
             return;
         }
@@ -2134,7 +2175,7 @@ async function loadExternalAlerts() {
         
         tbody.innerHTML = externalAlerts.map(alert => {
             const levelClass = `error-level-${alert.error_level.toLowerCase()}`;
-            
+
             return `
                 <tr>
                     <td>${formatDateTime(alert.timestamp)}</td>
@@ -2144,6 +2185,9 @@ async function loadExternalAlerts() {
                 </tr>
             `;
         }).join('');
+
+        const extActiveAlertsEl = document.getElementById('extActiveAlerts');
+        if (extActiveAlertsEl) extActiveAlertsEl.textContent = externalAlerts.length.toLocaleString();
     } catch (error) {
         console.error('Load external alerts error:', error);
         const tbody = document.querySelector('#externalAlertsTable tbody');

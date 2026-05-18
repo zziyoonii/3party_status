@@ -30,6 +30,64 @@
         <!-- LLM 서비스 탭 -->
         <div id="llm-services-tab" class="tab-content active">
 
+        <div class="stats-grid">
+            <div class="stat-card" data-tooltip="지난 24시간 동안 수집된 모든 모니터링 기록의 총 개수입니다.">
+                <div class="stat-icon">📊</div>
+                <div class="stat-content">
+                    <div class="stat-label">전체 기록 <span class="tooltip-icon">?</span></div>
+                    <div class="stat-value" id="totalRecords">-</div>
+                </div>
+            </div>
+            <div class="stat-card healthy" data-tooltip="서버가 정상적으로 응답한 모니터링 체크의 개수입니다.">
+                <div class="stat-icon">✅</div>
+                <div class="stat-content">
+                    <div class="stat-label">정상 상태 <span class="tooltip-icon">?</span></div>
+                    <div class="stat-value" id="healthyCount">-</div>
+                </div>
+            </div>
+            <div class="stat-card error" data-tooltip="서버 오류, 타임아웃, 연결 실패 등 문제가 발생한 모니터링 체크의 개수입니다.">
+                <div class="stat-icon">⚠️</div>
+                <div class="stat-content">
+                    <div class="stat-label">오류 발생 <span class="tooltip-icon">?</span></div>
+                    <div class="stat-value" id="errorCount">-</div>
+                </div>
+            </div>
+            <div class="stat-card" data-tooltip="지난 24시간 동안의 모든 모니터링 체크의 평균 응답 시간입니다. 밀리초(ms) 단위로 표시됩니다.">
+                <div class="stat-icon">📈</div>
+                <div class="stat-content">
+                    <div class="stat-label">평균 응답 시간 <span class="tooltip-icon">?</span></div>
+                    <div class="stat-value" id="avgResponseTime">-</div>
+                </div>
+            </div>
+            <div class="stat-card" data-tooltip="정상 상태인 모니터링 체크가 전체 체크 중 차지하는 비율입니다. 높을수록 서버 상태가 양호함을 의미합니다.">
+                <div class="stat-icon">🎯</div>
+                <div class="stat-content">
+                    <div class="stat-label">건강도 <span class="tooltip-icon">?</span></div>
+                    <div class="stat-value" id="healthRate">-</div>
+                </div>
+            </div>
+            <div class="stat-card alert" data-tooltip="현재 해결되지 않은 활성 알림의 개수입니다. WARNING, ERROR, CRITICAL 수준의 알림이 포함됩니다.">
+                <div class="stat-icon">🔔</div>
+                <div class="stat-content">
+                    <div class="stat-label">활성 알림 <span class="tooltip-icon">?</span></div>
+                    <div class="stat-value" id="activeAlerts">-</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CRITICAL 이슈 배너 -->
+        <div id="criticalBanner" class="critical-banner" style="display: none;">
+            <div class="critical-banner-content">
+                <div class="critical-icon">🚨</div>
+                <div class="critical-message">
+                    <div class="critical-title">CRITICAL 이슈 감지</div>
+                    <div class="critical-details" id="criticalDetails"></div>
+                    <div class="critical-action" id="criticalAction"></div>
+                </div>
+                <button class="critical-close" onclick="document.getElementById('criticalBanner').style.display='none'">×</button>
+            </div>
+        </div>
+
         <!-- Provider별 상태 카드 -->
         <div class="provider-status-grid">
             <div class="provider-status-card" id="openaiStatusCard">
@@ -78,64 +136,6 @@
                         <span class="stat-label-small">건강도</span>
                         <span class="stat-value-small" id="geminiHealthRate">-</span>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- CRITICAL 이슈 배너 -->
-        <div id="criticalBanner" class="critical-banner" style="display: none;">
-            <div class="critical-banner-content">
-                <div class="critical-icon">🚨</div>
-                <div class="critical-message">
-                    <div class="critical-title">CRITICAL 이슈 감지</div>
-                    <div class="critical-details" id="criticalDetails"></div>
-                    <div class="critical-action" id="criticalAction"></div>
-                </div>
-                <button class="critical-close" onclick="document.getElementById('criticalBanner').style.display='none'">×</button>
-            </div>
-        </div>
-
-        <div class="stats-grid">
-            <div class="stat-card" data-tooltip="지난 24시간 동안 수집된 모든 모니터링 기록의 총 개수입니다.">
-                <div class="stat-icon">📊</div>
-                <div class="stat-content">
-                    <div class="stat-label">전체 기록 <span class="tooltip-icon">?</span></div>
-                    <div class="stat-value" id="totalRecords">-</div>
-                </div>
-            </div>
-            <div class="stat-card healthy" data-tooltip="서버가 정상적으로 응답한 모니터링 체크의 개수입니다.">
-                <div class="stat-icon">✅</div>
-                <div class="stat-content">
-                    <div class="stat-label">정상 상태 <span class="tooltip-icon">?</span></div>
-                    <div class="stat-value" id="healthyCount">-</div>
-                </div>
-            </div>
-            <div class="stat-card error" data-tooltip="서버 오류, 타임아웃, 연결 실패 등 문제가 발생한 모니터링 체크의 개수입니다.">
-                <div class="stat-icon">⚠️</div>
-                <div class="stat-content">
-                    <div class="stat-label">오류 발생 <span class="tooltip-icon">?</span></div>
-                    <div class="stat-value" id="errorCount">-</div>
-                </div>
-            </div>
-            <div class="stat-card" data-tooltip="지난 24시간 동안의 모든 모니터링 체크의 평균 응답 시간입니다. 밀리초(ms) 단위로 표시됩니다.">
-                <div class="stat-icon">📈</div>
-                <div class="stat-content">
-                    <div class="stat-label">평균 응답 시간 <span class="tooltip-icon">?</span></div>
-                    <div class="stat-value" id="avgResponseTime">-</div>
-                </div>
-            </div>
-            <div class="stat-card" data-tooltip="정상 상태인 모니터링 체크가 전체 체크 중 차지하는 비율입니다. 높을수록 서버 상태가 양호함을 의미합니다.">
-                <div class="stat-icon">🎯</div>
-                <div class="stat-content">
-                    <div class="stat-label">건강도 <span class="tooltip-icon">?</span></div>
-                    <div class="stat-value" id="healthRate">-</div>
-                </div>
-            </div>
-            <div class="stat-card alert" data-tooltip="현재 해결되지 않은 활성 알림의 개수입니다. WARNING, ERROR, CRITICAL 수준의 알림이 포함됩니다.">
-                <div class="stat-icon">🔔</div>
-                <div class="stat-content">
-                    <div class="stat-label">활성 알림 <span class="tooltip-icon">?</span></div>
-                    <div class="stat-value" id="activeAlerts">-</div>
                 </div>
             </div>
         </div>
@@ -231,7 +231,7 @@
 
             <div class="table-card">
                 <div class="section-header">
-                    <h2>🔔 활성 알림</h2>
+                    <h2>🔔 활성 알림 <span class="tooltip-wrap">?<span class="tooltip-box">경고 수준 기준 (최근 5분 내)<br>⚠️ WARNING: 오류 3건 이상<br>🔴 ERROR: 오류 5건 이상<br>🚨 CRITICAL: 오류 10건 이상</span></span></h2>
                     <div class="alert-info">
                         <small>서버가 정상으로 복구되면 알림이 자동으로 해결됩니다. 해결 처리 버튼은 알림을 수동으로 무시할 때 사용하세요.</small>
                     </div>
@@ -259,8 +259,56 @@
 
         <!-- 외부 서비스 탭 -->
         <div id="external-services-tab" class="tab-content">
-            <!-- 외부 서비스 Provider별 상태 카드 -->
+            <!-- 외부 서비스 요약 통계 -->
+            <div class="stats-grid">
+                <div class="stat-card" data-tooltip="지난 24시간 동안 수집된 외부 서비스 모니터링 기록의 총 개수입니다.">
+                    <div class="stat-icon">📊</div>
+                    <div class="stat-content">
+                        <div class="stat-label">전체 기록</div>
+                        <div class="stat-value" id="extTotalRecords">-</div>
+                    </div>
+                </div>
+                <div class="stat-card healthy" data-tooltip="외부 서비스가 정상적으로 응답한 체크의 개수입니다.">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-content">
+                        <div class="stat-label">정상 상태</div>
+                        <div class="stat-value" id="extHealthyCount">-</div>
+                    </div>
+                </div>
+                <div class="stat-card error" data-tooltip="외부 서비스에서 오류가 발생한 체크의 개수입니다.">
+                    <div class="stat-icon">⚠️</div>
+                    <div class="stat-content">
+                        <div class="stat-label">오류 발생</div>
+                        <div class="stat-value" id="extErrorCount">-</div>
+                    </div>
+                </div>
+                <div class="stat-card alert" data-tooltip="현재 외부 서비스에서 해결되지 않은 활성 알림의 개수입니다.">
+                    <div class="stat-icon">🔔</div>
+                    <div class="stat-content">
+                        <div class="stat-label">활성 알림</div>
+                        <div class="stat-value" id="extActiveAlerts">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 외부 서비스 Provider별 상태 카드 (AWS → Cloudflare → Twilio → 채널톡) -->
             <div class="provider-status-grid">
+                <div class="provider-status-card" id="awsStatusCard">
+                    <div class="provider-header">
+                        <h3>☁️ AWS</h3>
+                        <span class="provider-status-badge" id="awsStatusBadge">-</span>
+                    </div>
+                    <div class="provider-stats">
+                        <div class="provider-stat-item">
+                            <span class="stat-label-small">응답 시간</span>
+                            <span class="stat-value-small" id="awsResponseTime">-</span>
+                        </div>
+                        <div class="provider-stat-item">
+                            <span class="stat-label-small">건강도</span>
+                            <span class="stat-value-small" id="awsHealthRate">-</span>
+                        </div>
+                    </div>
+                </div>
                 <div class="provider-status-card" id="cloudflareStatusCard">
                     <div class="provider-header">
                         <h3>☁️ Cloudflare</h3>
@@ -309,22 +357,6 @@
                         </div>
                     </div>
                 </div>
-                <div class="provider-status-card" id="awsStatusCard">
-                    <div class="provider-header">
-                        <h3>☁️ AWS</h3>
-                        <span class="provider-status-badge" id="awsStatusBadge">-</span>
-                    </div>
-                    <div class="provider-stats">
-                        <div class="provider-stat-item">
-                            <span class="stat-label-small">응답 시간</span>
-                            <span class="stat-value-small" id="awsResponseTime">-</span>
-                        </div>
-                        <div class="provider-stat-item">
-                            <span class="stat-label-small">건강도</span>
-                            <span class="stat-value-small" id="awsHealthRate">-</span>
-                        </div>
-                    </div>
-                </div>
             </div>
 
             <!-- CRITICAL 이슈 배너 (외부 서비스용) -->
@@ -353,6 +385,12 @@
                     </div>
                     <div class="provider-charts-grid">
                         <div class="provider-chart-item">
+                            <div class="provider-chart-label">AWS</div>
+                            <div class="chart-container-small">
+                                <canvas id="awsStatusChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="provider-chart-item">
                             <div class="provider-chart-label">Cloudflare</div>
                             <div class="chart-container-small">
                                 <canvas id="cloudflareStatusChart"></canvas>
@@ -368,12 +406,6 @@
                             <div class="provider-chart-label">채널톡</div>
                             <div class="chart-container-small">
                                 <canvas id="channeltalkStatusChart"></canvas>
-                            </div>
-                        </div>
-                        <div class="provider-chart-item">
-                            <div class="provider-chart-label">AWS</div>
-                            <div class="chart-container-small">
-                                <canvas id="awsStatusChart"></canvas>
                             </div>
                         </div>
                     </div>
@@ -437,7 +469,7 @@
 
                 <div class="table-card">
                     <div class="section-header">
-                        <h2>🔔 활성 알림</h2>
+                        <h2>🔔 활성 알림 <span class="tooltip-wrap">?<span class="tooltip-box">경고 수준 기준 (최근 5분 내)<br>⚠️ WARNING: 오류 3건 이상<br>🔴 ERROR: 오류 5건 이상<br>🚨 CRITICAL: 오류 10건 이상</span></span></h2>
                         <div class="alert-info">
                             <small>서버가 정상으로 복구되면 알림이 자동으로 해결됩니다. 해결 처리 버튼은 알림을 수동으로 무시할 때 사용하세요.</small>
                         </div>

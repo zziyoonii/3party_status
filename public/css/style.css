@@ -272,6 +272,10 @@ header h1 {
     grid-template-columns: repeat(3, 1fr);
 }
 
+#external-services-tab .provider-status-grid {
+    grid-template-columns: repeat(4, 1fr);
+}
+
 .provider-status-card {
     background: rgba(255, 255, 255, 0.05);
     backdrop-filter: blur(20px) saturate(180%);
@@ -649,7 +653,7 @@ header h1 {
     position: relative;
     height: 200px;
     width: 100%;
-    max-width: 200px;
+    max-width: 300px;
     margin: 0 auto;
     overflow: hidden; /* 차트가 컨테이너 밖으로 나가지 않도록 */
 }
@@ -660,7 +664,7 @@ header h1 {
 }
 
 #external-services-tab .provider-charts-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(4, 1fr);
 }
 
 #external-services-tab .chart-container {
@@ -673,7 +677,7 @@ header h1 {
 }
 
 #llm-services-tab .provider-charts-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
 }
 
 #llm-services-tab .chart-container {
@@ -769,6 +773,7 @@ th {
     font-weight: 600;
     color: var(--text-muted);
     font-size: 14px;
+    white-space: nowrap;
     border-bottom: 2px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -776,6 +781,11 @@ td {
     padding: 12px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     font-size: 14px;
+}
+
+#alertsTable td:not(:nth-child(3)),
+#externalAlertsTable td:not(:nth-child(3)) {
+    white-space: nowrap;
 }
 
 td.error-message-cell {
@@ -958,4 +968,43 @@ tbody tr:hover {
     .stats-grid {
         grid-template-columns: repeat(2, 1fr);
     }
+}
+
+/* 활성 알림 수준 기준 툴팁 */
+.tooltip-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: help;
+    vertical-align: middle;
+    margin-left: 6px;
+}
+
+.tooltip-box {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(15, 23, 42, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 12px;
+    font-weight: 400;
+    white-space: nowrap;
+    z-index: 100;
+    line-height: 1.8;
+    color: #f1f5f9;
+}
+
+.tooltip-wrap:hover .tooltip-box {
+    display: block;
 }
