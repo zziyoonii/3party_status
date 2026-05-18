@@ -153,7 +153,7 @@ function initializeCharts() {
                 maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        display: index === 0,
+                        display: false,
                         position: 'bottom',
                         labels: {
                             color: '#f1f5f9',
@@ -1306,7 +1306,7 @@ function initializeExternalCharts() {
                     maintainAspectRatio: false,
                     plugins: {
                         legend: {
-                            display: index === 0,
+                            display: false,
                             position: 'bottom',
                             labels: {
                                 color: '#f1f5f9',
@@ -1411,18 +1411,26 @@ async function loadExternalStats() {
                     .catch(() => ({}))
             )
         );
-        let total = 0, healthy = 0, error = 0;
+        let total = 0, healthy = 0, error = 0, totalRT = 0, rtCount = 0;
         results.forEach(s => {
             total += s.total_records || 0;
             healthy += s.healthy_count || 0;
             error += (s.total_records || 0) - (s.healthy_count || 0);
+            if (s.avg_response_time) { totalRT += s.avg_response_time; rtCount++; }
         });
+        const avgRT = rtCount > 0 ? Math.round(totalRT / rtCount) : null;
+        const healthRate = total > 0 ? ((healthy / total) * 100).toFixed(1) : null;
+
         const totalEl = document.getElementById('extTotalRecords');
         const healthyEl = document.getElementById('extHealthyCount');
         const errorEl = document.getElementById('extErrorCount');
+        const avgRTEl = document.getElementById('extAvgResponseTime');
+        const healthRateEl = document.getElementById('extHealthRate');
         if (totalEl) totalEl.textContent = total.toLocaleString();
         if (healthyEl) healthyEl.textContent = healthy.toLocaleString();
         if (errorEl) errorEl.textContent = Math.max(0, error).toLocaleString();
+        if (avgRTEl) avgRTEl.textContent = avgRT ? `${avgRT}ms` : '-';
+        if (healthRateEl) healthRateEl.textContent = healthRate ? `${healthRate}%` : '-';
     } catch (e) {
         console.error('Load external stats error:', e);
     }

@@ -144,6 +144,11 @@
             <div class="chart-section">
                 <div class="section-header">
                     <h2>📈 상태 통계 (Provider별)</h2>
+                    <div class="chart-legend-static">
+                        <span class="legend-item"><span class="legend-dot" style="background:#10b981"></span>정상</span>
+                        <span class="legend-item"><span class="legend-dot" style="background:#f59e0b"></span>저하</span>
+                        <span class="legend-item"><span class="legend-dot" style="background:#ef4444"></span>다운</span>
+                    </div>
                     <select id="statsTimeRange" class="filter-select" title="통계 시간 범위 선택">
                         <option value="1" selected>최근 1시간</option>
                         <option value="6">최근 6시간</option>
@@ -282,6 +287,20 @@
                         <div class="stat-value" id="extErrorCount">-</div>
                     </div>
                 </div>
+                <div class="stat-card" data-tooltip="지난 24시간 동안 외부 서비스의 평균 응답 시간입니다.">
+                    <div class="stat-icon">📈</div>
+                    <div class="stat-content">
+                        <div class="stat-label">평균 응답 시간</div>
+                        <div class="stat-value" id="extAvgResponseTime">-</div>
+                    </div>
+                </div>
+                <div class="stat-card" data-tooltip="외부 서비스 전체 건강도입니다. 높을수록 양호합니다.">
+                    <div class="stat-icon">🎯</div>
+                    <div class="stat-content">
+                        <div class="stat-label">건강도</div>
+                        <div class="stat-value" id="extHealthRate">-</div>
+                    </div>
+                </div>
                 <div class="stat-card alert" data-tooltip="현재 외부 서비스에서 해결되지 않은 활성 알림의 개수입니다.">
                     <div class="stat-icon">🔔</div>
                     <div class="stat-content">
@@ -376,6 +395,11 @@
                 <div class="chart-section">
                     <div class="section-header">
                         <h2>📈 상태 통계 (Provider별)</h2>
+                    <div class="chart-legend-static">
+                        <span class="legend-item"><span class="legend-dot" style="background:#10b981"></span>정상</span>
+                        <span class="legend-item"><span class="legend-dot" style="background:#f59e0b"></span>저하</span>
+                        <span class="legend-item"><span class="legend-dot" style="background:#ef4444"></span>다운</span>
+                    </div>
                         <select id="externalStatsTimeRange" class="filter-select" title="통계 시간 범위 선택">
                             <option value="1" selected>최근 1시간</option>
                             <option value="6">최근 6시간</option>
