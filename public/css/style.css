@@ -210,6 +210,22 @@ header h1 {
     text-shadow: 0 2px 20px rgba(255, 255, 255, 0.1);
 }
 
+.header-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+}
+
+.header-logo {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
 .header-info {
     display: flex;
     align-items: center;
@@ -971,6 +987,16 @@ tbody tr:hover {
         font-size: 20px;
     }
 
+    .header-brand {
+        font-size: 18px;
+        justify-content: center;
+    }
+
+    .header-logo {
+        width: 26px;
+        height: 26px;
+    }
+
     .header-info {
         flex-direction: column;
         gap: 8px;
@@ -1092,7 +1118,7 @@ tbody tr:hover {
 
     /* Provider별 도넛 차트 그리드 */
     #llm-services-tab .provider-charts-grid {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(2, 1fr);
         gap: 12px;
     }
 
@@ -1164,8 +1190,8 @@ tbody tr:hover {
     }
 }
 
-/* 초소형 화면 (375px 이하) */
-@media (max-width: 375px) {
+/* 소형 화면 (480px 이하) */
+@media (max-width: 480px) {
     .stats-grid {
         grid-template-columns: repeat(2, 1fr);
     }
@@ -1174,6 +1200,20 @@ tbody tr:hover {
         grid-template-columns: 1fr;
     }
 
+    /* 알림 테이블: 수준 컬럼 숨김 */
+    th:nth-child(2), td:nth-child(2) {
+        display: none;
+    }
+
+    /* 메시지 컬럼 1줄 말줄임 */
+    td:nth-child(3) {
+        -webkit-line-clamp: 1;
+        max-width: 120px;
+    }
+}
+
+/* 초소형 화면 (375px 이하) */
+@media (max-width: 375px) {
     #llm-services-tab .provider-charts-grid {
         grid-template-columns: repeat(2, 1fr);
     }
