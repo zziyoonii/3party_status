@@ -1416,7 +1416,10 @@ async function loadExternalStats() {
             total += s.total_records || 0;
             healthy += s.healthy_count || 0;
             error += (s.total_records || 0) - (s.healthy_count || 0);
-            if (s.avg_response_time) { totalRT += s.avg_response_time; rtCount++; }
+            if (s.avg_response_time_ms && s.total_records > 0) {
+                totalRT += s.avg_response_time_ms * s.total_records;
+                rtCount += s.total_records;
+            }
         });
         const avgRT = rtCount > 0 ? Math.round(totalRT / rtCount) : null;
         const healthRate = total > 0 ? ((healthy / total) * 100).toFixed(1) : null;
@@ -2189,7 +2192,11 @@ async function loadExternalAlerts() {
                     <td>${formatDateTime(alert.timestamp)}</td>
                     <td><span class="${levelClass}">${alert.error_level}</span></td>
                     <td>${alert.message}</td>
-                    <td>활성</td>
+                    <td>
+                        <button class="btn-resolve" onclick="resolveAlert(${alert.id})">
+                            해결 처리
+                        </button>
+                    </td>
                 </tr>
             `;
         }).join('');

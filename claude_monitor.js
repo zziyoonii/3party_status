@@ -157,33 +157,32 @@ export class ClaudeStatusMonitor {
   }
   
   async createAlertIfNeeded(record, error_level) {
-    if (error_level === null) {
-      return null;
-    }
-    
-    // 최근 동일한 수준의 미해결 알림이 있는지 확인 (Claude 관련)
-    const recentAlert = await Alert.findOne({
-      where: {
-        error_level: error_level,
-        resolved: 0,
-        message: {
-          [Op.like]: '%Claude%',
-        },
-      },
+    if (error_level === null) return null;
+
+    const levelRank = { INFO: 0, WARNING: 1, ERROR: 2, CRITICAL: 3 };
+    const now = new Date();
+    const message = `Claude 서비스 상태 이상 감지: ${record.status}. 오류 메시지: ${record.error_message || 'N/A'}`;
+
+    const latestUnresolved = await Alert.findOne({
+      where: { resolved: 0, message: { [Op.like]: '%Claude%' } },
       order: [['timestamp', 'DESC']],
     });
-    
-    // 새로운 알림이 필요한 경우
-    if (!recentAlert || error_level === ErrorLevel.ERROR || error_level === ErrorLevel.CRITICAL) {
-      const alert = await Alert.create({
-        timestamp: new Date(),
-        error_level: error_level,
-        message: `Claude 서비스 상태 이상 감지: ${record.status}. 오류 메시지: ${record.error_message || 'N/A'}`,
-      });
-      return alert;
+
+    if (latestUnresolved && levelRank[error_level] > levelRank[latestUnresolved.error_level]) {
+      latestUnresolved.resolved = 1;
+      latestUnresolved.resolved_at = now;
+      await latestUnresolved.save();
+      return await Alert.create({ timestamp: now, error_level, message });
     }
-    
-    return recentAlert;
+
+    if (latestUnresolved && latestUnresolved.error_level === error_level) {
+      const cooldownMs = settings.ALERT_COOLDOWN_MINUTES * 60 * 1000;
+      if ((now - new Date(latestUnresolved.timestamp)) < cooldownMs) {
+        return latestUnresolved;
+      }
+    }
+
+    return await Alert.create({ timestamp: now, error_level, message });
   }
   
   async monitor() {

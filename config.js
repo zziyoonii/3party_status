@@ -62,13 +62,17 @@ export const settings = {
   MONITORING_INTERVAL: parseInt(process.env.MONITORING_INTERVAL || '60', 10), // 초 (기본값: 1분, 대시보드 자동 갱신 주기와 일치)
   HEALTH_CHECK_TIMEOUT: parseInt(process.env.HEALTH_CHECK_TIMEOUT || '5', 10), // 초
   
-  // 오류 수준 임계값 설정
-  ERROR_THRESHOLD_WARNING: parseInt(process.env.ERROR_THRESHOLD_WARNING || '3', 10), // WARNING 수준 오류 개수
-  ERROR_THRESHOLD_ERROR: parseInt(process.env.ERROR_THRESHOLD_ERROR || '5', 10), // ERROR 수준 오류 개수
-  ERROR_THRESHOLD_CRITICAL: parseInt(process.env.ERROR_THRESHOLD_CRITICAL || '10', 10), // CRITICAL 수준 오류 개수
-  
-  // 시간 윈도우 (분)
-  ERROR_WINDOW_MINUTES: parseInt(process.env.ERROR_WINDOW_MINUTES || '5', 10),
+  // 오류 수준 임계값 설정 (모니터링 주기 1분, 윈도우 30분 기준)
+  // WARNING: 간헐적 오류, ERROR: ≈10분+ 지속, CRITICAL: ≈20분+ 지속
+  ERROR_THRESHOLD_WARNING: parseInt(process.env.ERROR_THRESHOLD_WARNING || '3', 10),
+  ERROR_THRESHOLD_ERROR: parseInt(process.env.ERROR_THRESHOLD_ERROR || '10', 10),
+  ERROR_THRESHOLD_CRITICAL: parseInt(process.env.ERROR_THRESHOLD_CRITICAL || '20', 10),
+
+  // 시간 윈도우 (분) — CRITICAL 도달 가능하려면 윈도우 >= CRITICAL 임계값
+  ERROR_WINDOW_MINUTES: parseInt(process.env.ERROR_WINDOW_MINUTES || '30', 10),
+
+  // 동일 수준 알림 재생성 최소 간격 (분) — 알림 스팸 방지
+  ALERT_COOLDOWN_MINUTES: parseInt(process.env.ALERT_COOLDOWN_MINUTES || '30', 10),
   
   // API 서버 설정
   API_HOST: process.env.API_HOST || '0.0.0.0',
