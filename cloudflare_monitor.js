@@ -85,9 +85,10 @@ export class CloudflareStatusMonitor {
           }
         } else {
           // 아시아 컴포넌트 없으면 전역 indicator로 폴백
-          if (indicator === 'none') {
+          // minor는 한국과 무관한 지역 이슈일 가능성이 높으므로 HEALTHY로 처리
+          if (indicator === 'none' || indicator === 'minor') {
             status = ServerStatus.HEALTHY;
-          } else if (indicator === 'minor' || indicator === 'maintenance') {
+          } else if (indicator === 'maintenance') {
             status = ServerStatus.DEGRADED;
             error_message = `Cloudflare Status: ${indicator}`;
           } else if (indicator === 'major' || indicator === 'critical') {
