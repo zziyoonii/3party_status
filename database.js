@@ -25,6 +25,7 @@ if (databaseUrl.startsWith('sqlite://')) {
   const isPostgres = databaseUrl.startsWith('postgres');
   sequelize = new Sequelize(databaseUrl, {
     logging: false,
+    pool: { max: 3, min: 0, idle: 5000, acquire: 30000 },
     dialectOptions: isPostgres ? {
       ssl: {
         require: true,

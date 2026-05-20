@@ -13,6 +13,7 @@ import { AWSStatusMonitor } from './aws_monitor.js';
 import { sequelize } from './database.js';
 import { settings } from './config.js';
 import { AlertManager } from './alert_manager.js';
+import { Op } from 'sequelize';
 
 export class MonitoringScheduler {
   constructor() {
@@ -371,16 +372,34 @@ export class MonitoringScheduler {
     // 알림 관리 작업 (30분마다 실행)
     const maintenanceInterval = setInterval(async () => {
       await this.alertManager.performMaintenance();
-    }, 30 * 60 * 1000); // 30분
-    
+    }, 30 * 60 * 1000);
     this.intervals.push(maintenanceInterval);
-    
+
+    // MonitoringRecord 정리 (1시간마다, 2일 초과 기록 삭제)
+    const recordCleanupInterval = setInterval(
+      () => this.cleanupOldMonitoringRecords(),
+      60 * 60 * 1000
+    );
+    this.intervals.push(recordCleanupInterval);
+
     // 시작 시 한 번 실행
     setTimeout(() => {
       this.alertManager.performMaintenance();
+      this.cleanupOldMonitoringRecords();
     }, 5000);
   }
-  
+
+  async cleanupOldMonitoringRecords() {
+    try {
+      const { MonitoringRecord } = await import('./models/index.js');
+      const cutoff = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
+      const deleted = await MonitoringRecord.destroy({ where: { timestamp: { [Op.lt]: cutoff } } });
+      if (deleted > 0) console.log(`[Cleanup] MonitoringRecord ${deleted}건 삭제`);
+    } catch (err) {
+      console.error('[Cleanup] MonitoringRecord 정리 실패:', err.message);
+    }
+  }
+
   stop() {
     if (!this.isRunning) {
       return;
