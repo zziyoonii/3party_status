@@ -63,8 +63,8 @@ export const MonitoringRecord = sequelize.define('MonitoringRecord', {
     allowNull: true,
   },
   additional_data: {
-    type: DataTypes.TEXT,
-    allowNull: true, // JSON 형태로 추가 데이터 저장
+    type: DataTypes.STRING(1024),
+    allowNull: true,
   },
 }, {
   tableName: 'monitoring_records',
