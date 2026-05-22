@@ -2,11 +2,17 @@
  * Cloudflare Status API 모니터링 모듈
  */
 import axios from 'axios';
+import https from 'https';
 import { MonitoringRecord, ServerStatus, ErrorLevel, Alert } from './models/index.js';
 import { settings } from './config.js';
 import { Op } from 'sequelize';
 import { SlackNotifier } from './slack_notifier.js';
 import { AlertManager } from './alert_manager.js';
+
+const axiosInstance = axios.create({
+  httpsAgent: new https.Agent({ keepAlive: true, maxSockets: 5 }),
+  timeout: 10000,
+});
 
 export class CloudflareStatusMonitor {
   /**
@@ -36,7 +42,7 @@ export class CloudflareStatusMonitor {
       console.log(`[Cloudflare] Checking status at: ${statusUrl}`);
       
       // 전체 상태 체크
-      const statusResponse = await axios.get(statusUrl, {
+      const statusResponse = await axiosInstance.get(statusUrl, {
         timeout: this.timeout,
       });
       
@@ -50,7 +56,7 @@ export class CloudflareStatusMonitor {
         // 컴포넌트 정보 항상 fetch (아시아 리전 필터링 목적)
         let componentsData = null;
         try {
-          const componentsResponse = await axios.get(componentsUrl, { timeout: this.timeout });
+          const componentsResponse = await axiosInstance.get(componentsUrl, { timeout: this.timeout });
           if (componentsResponse.status === 200) {
             componentsData = componentsResponse.data;
           }

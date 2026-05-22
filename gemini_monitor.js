@@ -7,7 +7,13 @@
  * API 키가 있으면 실제 models API 호출로 더 정확하게 확인
  */
 import axios from 'axios';
+import https from 'https';
 import { MonitoringRecord, ServerStatus, ErrorLevel, Alert } from './models/index.js';
+
+const axiosInstance = axios.create({
+  httpsAgent: new https.Agent({ keepAlive: true, maxSockets: 5 }),
+  timeout: 10000,
+});
 import { settings } from './config.js';
 import { Op } from 'sequelize';
 import { SlackNotifier } from './slack_notifier.js';
@@ -35,7 +41,7 @@ export class GeminiStatusMonitor {
     if (this.api_key) {
       try {
         const modelsUrl = `${this.api_url}/models?key=${this.api_key}`;
-        const response = await axios.get(modelsUrl, {
+        const response = await axiosInstance.get(modelsUrl, {
           timeout: this.timeout,
           headers: { 'Content-Type': 'application/json' },
         });
@@ -83,7 +89,7 @@ export class GeminiStatusMonitor {
       // 400/401/403 = 서버 정상 (인증 필요), 5xx = 서버 이상, 연결 실패 = 다운
       const probeUrl = `${this.api_url}/models`;
       try {
-        const response = await axios.get(probeUrl, { timeout: this.timeout });
+        const response = await axiosInstance.get(probeUrl, { timeout: this.timeout });
 
         response_time_ms = Date.now() - startTime;
         http_status_code = response.status;

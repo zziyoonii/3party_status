@@ -3,11 +3,17 @@
  * 참고: 채널톡은 공식 Status API를 제공하지 않으므로, Status 페이지를 모니터링합니다.
  */
 import axios from 'axios';
+import https from 'https';
 import { MonitoringRecord, ServerStatus, ErrorLevel, Alert } from './models/index.js';
 import { settings } from './config.js';
 import { Op } from 'sequelize';
 import { SlackNotifier } from './slack_notifier.js';
 import { AlertManager } from './alert_manager.js';
+
+const axiosInstance = axios.create({
+  httpsAgent: new https.Agent({ keepAlive: true, maxSockets: 5 }),
+  timeout: 10000,
+});
 
 export class ChannelTalkStatusMonitor {
   /**
@@ -35,7 +41,7 @@ export class ChannelTalkStatusMonitor {
       const componentsUrl = `${this.api_url}/components.json`;
       
       // 전체 상태 체크
-      const statusResponse = await axios.get(statusUrl, {
+      const statusResponse = await axiosInstance.get(statusUrl, {
         timeout: this.timeout,
       });
       
@@ -63,7 +69,7 @@ export class ChannelTalkStatusMonitor {
         // 전체 상태가 none이면 일부 지역 컴포넌트 문제는 무시 (전체 서비스는 정상)
         if (indicator !== 'none') {
           try {
-            const componentsResponse = await axios.get(componentsUrl, {
+            const componentsResponse = await axiosInstance.get(componentsUrl, {
               timeout: this.timeout,
             });
             
@@ -80,7 +86,7 @@ export class ChannelTalkStatusMonitor {
         } else {
           // 전체 상태가 none일 때는 컴포넌트 정보만 저장 (상태 변경 없음)
           try {
-            const componentsResponse = await axios.get(componentsUrl, {
+            const componentsResponse = await axiosInstance.get(componentsUrl, {
               timeout: this.timeout,
             });
             

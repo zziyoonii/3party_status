@@ -2,11 +2,17 @@
  * Claude Status API 모니터링 모듈
  */
 import axios from 'axios';
+import https from 'https';
 import { MonitoringRecord, ServerStatus, ErrorLevel, Alert } from './models/index.js';
 import { settings } from './config.js';
 import { Op } from 'sequelize';
 import { SlackNotifier } from './slack_notifier.js';
 import { AlertManager } from './alert_manager.js';
+
+const axiosInstance = axios.create({
+  httpsAgent: new https.Agent({ keepAlive: true, maxSockets: 5 }),
+  timeout: 10000,
+});
 
 export class ClaudeStatusMonitor {
   /**
@@ -34,7 +40,7 @@ export class ClaudeStatusMonitor {
       const componentsUrl = `${this.api_url}/components.json`;
       
       // 전체 상태 체크
-      const statusResponse = await axios.get(statusUrl, {
+      const statusResponse = await axiosInstance.get(statusUrl, {
         timeout: this.timeout,
       });
       
@@ -60,7 +66,7 @@ export class ClaudeStatusMonitor {
         
         // 컴포넌트 상태도 확인
         try {
-          const componentsResponse = await axios.get(componentsUrl, {
+          const componentsResponse = await axiosInstance.get(componentsUrl, {
             timeout: this.timeout,
           });
           

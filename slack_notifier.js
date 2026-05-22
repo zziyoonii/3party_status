@@ -2,7 +2,13 @@
  * Slack 알림 모듈
  */
 import axios from 'axios';
+import https from 'https';
 import { settings } from './config.js';
+
+const axiosInstance = axios.create({
+  httpsAgent: new https.Agent({ keepAlive: true, maxSockets: 5 }),
+  timeout: 10000,
+});
 import { MonitoringRecord, Alert } from './models/index.js';
 import { ServerStatus, ErrorLevel } from './models/index.js';
 import { Op } from 'sequelize';
@@ -167,7 +173,7 @@ export class SlackNotifier {
         ],
       };
       
-      const response = await axios.post(this.webhookUrl, payload, {
+      const response = await axiosInstance.post(this.webhookUrl, payload, {
         headers: {
           'Content-Type': 'application/json',
         },
@@ -359,7 +365,7 @@ export class SlackNotifier {
         ],
       };
       
-      const response = await axios.post(this.webhookUrl, payload, {
+      const response = await axiosInstance.post(this.webhookUrl, payload, {
         headers: {
           'Content-Type': 'application/json',
         },

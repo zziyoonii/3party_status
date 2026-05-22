@@ -3,11 +3,17 @@
  * 실제 OpenAI API 엔드포인트를 호출하여 서비스가 정상 작동하는지 확인
  */
 import axios from 'axios';
+import https from 'https';
 import { MonitoringRecord, ServerStatus, ErrorLevel, Alert } from './models/index.js';
 import { settings } from './config.js';
 import { Op } from 'sequelize';
 import { SlackNotifier } from './slack_notifier.js';
 import { AlertManager } from './alert_manager.js';
+
+const axiosInstance = axios.create({
+  httpsAgent: new https.Agent({ keepAlive: true, maxSockets: 5 }),
+  timeout: 10000,
+});
 
 export class OpenAIAPIMonitor {
   /**
@@ -39,7 +45,7 @@ export class OpenAIAPIMonitor {
         headers['Authorization'] = `Bearer ${this.api_key}`;
       }
       
-      const response = await axios.get(url, {
+      const response = await axiosInstance.get(url, {
         headers,
         timeout: this.timeout,
       });
