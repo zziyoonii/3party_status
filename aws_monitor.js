@@ -3,11 +3,17 @@
  * (AWS는 Statuspage.io 형식 공개 API가 없어, 상태 페이지 도달 가능성으로 모니터링)
  */
 import axios from 'axios';
+import https from 'https';
 import { MonitoringRecord, ServerStatus, ErrorLevel, Alert } from './models/index.js';
 import { settings } from './config.js';
 import { Op } from 'sequelize';
 import { SlackNotifier } from './slack_notifier.js';
 import { AlertManager } from './alert_manager.js';
+
+const axiosInstance = axios.create({
+  httpsAgent: new https.Agent({ keepAlive: true, maxSockets: 5 }),
+  timeout: 10000,
+});
 
 export class AWSStatusMonitor {
   /**
@@ -33,7 +39,7 @@ export class AWSStatusMonitor {
       const url = this.status_url.replace(/\/$/, '');
       console.log(`[AWS] Checking status at: ${url}`);
 
-      const response = await axios.get(url, {
+      const response = await axiosInstance.get(url, {
         timeout: this.timeout,
         validateStatus: () => true, // 모든 상태 코드 허용 (4xx/5xx도 처리)
       });
