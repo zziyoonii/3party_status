@@ -1,5 +1,10 @@
+# fly.toml app configuration file generated for beforestatus on 2026-05-27T06:18:56Z
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
 app = 'beforestatus'
-primary_region = 'nrt'
+primary_region = 'sin'
 
 [build]
 
