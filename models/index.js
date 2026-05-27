@@ -63,7 +63,7 @@ export const MonitoringRecord = sequelize.define('MonitoringRecord', {
     allowNull: true,
   },
   additional_data: {
-    type: DataTypes.STRING(1024),
+    type: DataTypes.TEXT,
     allowNull: true,
   },
 }, {
