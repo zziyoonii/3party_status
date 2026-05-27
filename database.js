@@ -5,7 +5,7 @@ import { Sequelize } from 'sequelize';
 import { settings } from './config.js';
 
 // SQLite 연결 설정
-const databaseUrl = settings.DATABASE_URL;
+const databaseUrl = settings.DATABASE_URL.replace(/^postgresql:\/\//, 'postgres://');
 let sequelize;
 
 if (databaseUrl.startsWith('sqlite://')) {
