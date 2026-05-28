@@ -151,15 +151,21 @@ export class ClaudeStatusMonitor {
     });
     
     // 오류 수준 결정
+    let errorLevel;
     if (recentErrors >= settings.ERROR_THRESHOLD_CRITICAL) {
-      return ErrorLevel.CRITICAL;
+      errorLevel = ErrorLevel.CRITICAL;
     } else if (recentErrors >= settings.ERROR_THRESHOLD_ERROR) {
-      return ErrorLevel.ERROR;
+      errorLevel = ErrorLevel.ERROR;
     } else if (recentErrors >= settings.ERROR_THRESHOLD_WARNING) {
-      return ErrorLevel.WARNING;
+      errorLevel = ErrorLevel.WARNING;
     } else {
-      return ErrorLevel.INFO;
+      errorLevel = ErrorLevel.INFO;
     }
+    if (record.status === ServerStatus.DEGRADED &&
+        (errorLevel === ErrorLevel.CRITICAL || errorLevel === ErrorLevel.ERROR)) {
+      errorLevel = ErrorLevel.WARNING;
+    }
+    return errorLevel;
   }
   
   async createAlertIfNeeded(record, error_level) {
