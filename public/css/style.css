@@ -1312,3 +1312,31 @@ tbody tr:hover {
     display: inline-block;
     flex-shrink: 0;
 }
+
+/* Footer */
+.app-footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 24px 20px;
+    margin-top: 40px;
+    font-size: 13px;
+    color: #94a3b8;
+}
+
+.app-footer a {
+    color: #94a3b8;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.app-footer a:hover {
+    color: #e2e8f0;
+}
+
+.footer-divider {
+    color: #475569;
+    user-select: none;
+}
